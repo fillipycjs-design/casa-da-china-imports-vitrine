@@ -94,7 +94,7 @@ label{display:block;color:#bbb;font-size:12px;margin-bottom:5px}.grid{display:gr
 <div><label>Observação</label><input id="dObs"></div>
 <div class="actions"><button class="primary">Salvar aparelho</button></div><div id="dMsg" class="msg"></div>
 </form></div>
-<div class="card"><h2>Estoque individual</h2><div class="scroll"><table><thead><tr><th>Data</th><th>Fornecedor</th><th>Produto da vitrine</th><th>IMEI</th><th>Modelo</th><th>Cor</th><th>Memória</th><th>Custo</th><th>Status</th></tr></thead><tbody id="deviceRows"></tbody></table></div></div>
+<div class="card"><h2>Estoque individual</h2><div class="scroll"><table><thead><tr><th>Data</th><th>Fornecedor</th><th>IMEI</th><th>Modelo</th><th>Cor</th><th>Memória</th><th>Custo</th><th>Status</th></tr></thead><tbody id="deviceRows"></tbody></table></div></div>
 </section>
 
 <section id="venda" class="tab">
@@ -231,9 +231,9 @@ $('productForm').onsubmit=async e=>{
 
 
 async function loadDevices(){
- const {data,error}=await sb.from('aparelhos').select('*,fornecedores(nome),produtos(id,nome,marca,armazenamento,ram)').order('criado_em',{ascending:false});
+ const {data,error}=await sb.from('aparelhos').select('*,fornecedores(nome)').order('criado_em',{ascending:false});
  if(error) throw error; devices=data||[];
- $('deviceRows').innerHTML=devices.map(x=>`<tr><td>${safe(x.data_compra)}</td><td>${safe(x.fornecedores?.nome||'-')}</td><td>${safe(x.produtos?.nome||'Não vinculado')}</td><td>${safe(x.imei)}</td><td>${safe(x.modelo)}</td><td>${safe(x.cor||'-')}</td><td>${safe(x.armazenamento)} / ${safe(x.ram)}</td><td>${money(x.valor_compra)}</td><td class="stock">${safe(x.status)}</td></tr>`).join('');
+ $('deviceRows').innerHTML=devices.map(x=>`<tr><td>${safe(x.data_compra)}</td><td>${safe(x.fornecedores?.nome||'-')}</td><td>${safe(x.imei)}</td><td>${safe(x.modelo)}</td><td>${safe(x.cor||'-')}</td><td>${safe(x.armazenamento)} / ${safe(x.ram)}</td><td>${money(x.valor_compra)}</td><td class="stock">${safe(x.status)}</td></tr>`).join('');
  const available=devices.filter(x=>x.status==='EM ESTOQUE');
  $('vDevice').innerHTML='<option value="">Selecione o aparelho...</option>'+available.map(x=>`<option value="${x.id}">${safe(x.modelo)} • ${safe(x.armazenamento)}/${safe(x.ram)} • IMEI ${safe(x.imei)}</option>`).join('');
 }
