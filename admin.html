@@ -9,7 +9,9 @@ h1{font-size:22px}.red{color:var(--red)}button{border:0;border-radius:9px;paddin
 .toolbar{display:flex;gap:8px;margin:18px 0;flex-wrap:wrap}.toolbar input{flex:1;min-width:220px}
 input,select{background:#151515;border:1px solid #333;color:white;border-radius:8px;padding:10px;width:100%}
 table{width:100%;border-collapse:collapse;background:#111}th,td{padding:10px;border-bottom:1px solid #292929;text-align:left;font-size:13px}th{color:#aaa}.thumb{width:55px;height:55px;object-fit:contain;background:white;border-radius:7px}.tablewrap{overflow:auto;border:1px solid #292929;border-radius:12px}
-dialog{width:min(650px,95vw);background:#111;color:white;border:1px solid #333;border-radius:15px}.form{display:grid;gap:11px}.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}.row3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.actions{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}.preview{height:180px;background:white;border-radius:10px;display:flex;align-items:center;justify-content:center;overflow:hidden}.preview img{width:100%;height:100%;object-fit:contain}.msg{padding:10px;border-radius:8px;background:#1a1a1a;color:#ccc}.status{font-size:12px;color:#aaa}@media(max-width:650px){.row,.row3{grid-template-columns:1fr}th:nth-child(3),td:nth-child(3){display:none}}
+dialog{width:min(650px,95vw);background:#111;color:white;border:1px solid #333;border-radius:15px}.form{display:grid;gap:11px}.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}.row3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.actions{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}.preview{height:180px;background:white;border-radius:10px;display:flex;align-items:center;justify-content:center;overflow:hidden}.preview img{width:100%;height:100%;object-fit:contain}.msg{padding:10px;border-radius:8px;background:#1a1a1a;color:#ccc}.status{font-size:12px;color:#aaa}
+.saleinfo{background:#181818;border:1px solid #333;border-radius:10px;padding:12px;line-height:1.5}
+.saleok{color:#7ee787}.salewarn{color:#ffcc66}@media(max-width:650px){.row,.row3{grid-template-columns:1fr}th:nth-child(3),td:nth-child(3){display:none}}
 </style></head><body>
 <header><div class="wrap top"><h1>CASA DA CHINA <span class="red">IMPORTS</span> — Admin</h1><div><button class="secondary" onclick="location.href='index.html'">Ver vitrine</button> <button class="danger" id="logout">Sair</button></div></div></header>
 <main class="wrap">
@@ -32,6 +34,36 @@ dialog{width:min(650px,95vw);background:#111;color:white;border:1px solid #333;b
 <div class="actions"><button type="button" class="secondary" onclick="dlg.close()">Cancelar</button><button class="primary" id="saveBtn">Salvar produto</button></div>
 </form></dialog>
 
+<dialog id="saleDlg"><form class="form" id="saleForm">
+<h2>🛒 Registrar venda</h2>
+<input type="hidden" id="salePid">
+<div class="saleinfo" id="saleProduct"></div>
+<div class="row">
+  <div><label>Quantidade vendida</label><input id="saleQty" type="number" min="1" step="1" value="1" required></div>
+  <div><label>Preço unitário da venda (R$)</label><input id="salePrice" type="number" min="0" step=".01" required></div>
+</div>
+<div class="row">
+  <div><label>Forma de pagamento</label>
+    <select id="salePayment" required>
+      <option value="PIX">PIX</option><option value="DINHEIRO">DINHEIRO</option>
+      <option value="DÉBITO">DÉBITO</option><option value="CRÉDITO">CRÉDITO</option>
+    </select>
+  </div>
+  <div><label>Parcelas</label><select id="saleInstallments"></select></div>
+</div>
+<div class="row">
+  <div><label>Cliente (opcional)</label><input id="saleClient" placeholder="Nome do cliente"></div>
+  <div><label>Cidade (opcional)</label><input id="saleCity" placeholder="Cidade"></div>
+</div>
+<div><label>Observação (opcional)</label><input id="saleObs" placeholder="Ex.: venda balcão"></div>
+<div class="saleinfo"><b>Total:</b> <span id="saleTotal">R$ 0,00</span> &nbsp; • &nbsp; <b>Estoque após venda:</b> <span id="saleRemaining">0</span></div>
+<div id="saleMsg" class="status"></div>
+<div class="actions">
+  <button type="button" class="secondary" onclick="saleDlg.close()">Cancelar</button>
+  <button class="primary" id="confirmSale">Confirmar venda</button>
+</div>
+</form></dialog>
+
 <script>
 const SUPABASE_URL='https://tkrexoazcadbyezdwwkn.supabase.co', KEY='sb_publishable_XL9bwwKoLCRvGegqaqoedw_38BW1phc', ADMIN_UID='5679fdda-515c-4e08-ad2e-61285478fe78';
 const sb=supabase.createClient(SUPABASE_URL,KEY); let items=[], currentImage=null;
@@ -51,7 +83,7 @@ async function load(){
 function render(){
  const t=$('search').value.toLowerCase();
  const a=items.filter(p=>(p.nome||'').toLowerCase().includes(t));
- $('tbody').innerHTML=a.map(p=>`<tr><td>${p.imagem_url?`<img class="thumb" src="${safe(p.imagem_url)}">`:'—'}</td><td><b>${safe(p.nome)}</b><br><span class=status>${safe(p.marca)}</span></td><td>${safe(p.armazenamento)} / ${safe(p.ram)} RAM<br>${safe(p.rede||'')}</td><td>${money(p.preco_pix)}</td><td>${money(p.preco_cartao)}</td><td><b>${Number(p.quantidade||0)}</b></td><td>${safe(p.status)}</td><td><button class="secondary" onclick="edit(${p.id})">Editar</button> <button class="danger" onclick="del(${p.id})">Excluir</button></td></tr>`).join('');
+ $('tbody').innerHTML=a.map(p=>`<tr><td>${p.imagem_url?`<img class="thumb" src="${safe(p.imagem_url)}">`:'—'}</td><td><b>${safe(p.nome)}</b><br><span class=status>${safe(p.marca)}</span></td><td>${safe(p.armazenamento)} / ${safe(p.ram)} RAM<br>${safe(p.rede||'')}</td><td>${money(p.preco_pix)}</td><td>${money(p.preco_cartao)}</td><td><b>${Number(p.quantidade||0)}</b></td><td>${safe(p.status)}</td><td><button class="primary" onclick="sell(${p.id})" ${Number(p.quantidade||0)<=0?'disabled title="Sem estoque"':''}>🛒 Vender</button> <button class="secondary" onclick="edit(${p.id})">Editar</button> <button class="danger" onclick="del(${p.id})">Excluir</button></td></tr>`).join('');
 }
 $('search').oninput=render;
 $('newBtn').onclick=()=>{form.reset();$('pid').value='';$('ordem').value=0;$('quantidade').value=0;currentImage=null;$('preview').innerHTML='<span style="color:#777">Sem imagem</span>';$('formTitle').textContent='Novo produto';$('formMsg').textContent='';dlg.showModal()};
@@ -83,6 +115,71 @@ $('form').onsubmit=async e=>{
  }catch(err){$('formMsg').textContent='❌ '+err.message}
  finally{$('saveBtn').disabled=false}
 };
+
+for(let i=1;i<=12;i++) $('saleInstallments').insertAdjacentHTML('beforeend',`<option value="${i}">${i}x</option>`);
+function updateSaleSummary(){
+ const p=items.find(x=>x.id===Number($('salePid').value)); if(!p)return;
+ const q=Math.max(1,Number($('saleQty').value||1)), price=Math.max(0,Number($('salePrice').value||0));
+ $('saleTotal').textContent=money(q*price);
+ $('saleRemaining').textContent=Math.max(0,Number(p.quantidade||0)-q);
+}
+$('saleQty').oninput=updateSaleSummary;$('salePrice').oninput=updateSaleSummary;
+$('salePayment').onchange=()=>{
+ const credit=$('salePayment').value==='CRÉDITO';
+ $('saleInstallments').disabled=!credit;
+ if(!credit)$('saleInstallments').value='1';
+};
+window.sell=id=>{
+ const p=items.find(x=>x.id===id); if(!p)return;
+ const stock=Number(p.quantidade||0);
+ if(stock<=0){alert('Produto sem estoque.');return}
+ $('salePid').value=p.id;$('saleQty').value=1;$('saleQty').max=stock;
+ $('salePrice').value=Number(p.preco_pix||0).toFixed(2);
+ $('salePayment').value='PIX';$('saleInstallments').value='1';$('saleInstallments').disabled=true;
+ $('saleClient').value='';$('saleCity').value='';$('saleObs').value='';$('saleMsg').textContent='';
+ $('saleProduct').innerHTML=`<b>${safe(p.nome)}</b><br>${safe(p.armazenamento)} / ${safe(p.ram)} RAM<br>Estoque atual: <b>${stock}</b>`;
+ updateSaleSummary();saleDlg.showModal();
+};
+$('saleForm').onsubmit=async e=>{
+ e.preventDefault();
+ const id=Number($('salePid').value), p=items.find(x=>x.id===id); if(!p)return;
+ const qty=Math.max(1,Number($('saleQty').value||1)), stock=Number(p.quantidade||0);
+ const price=Math.max(0,Number($('salePrice').value||0));
+ if(qty>stock){$('saleMsg').textContent='❌ Quantidade maior que o estoque disponível.';return}
+ if(price<=0){$('saleMsg').textContent='❌ Informe um preço de venda válido.';return}
+ $('confirmSale').disabled=true;$('saleMsg').textContent='Registrando venda...';
+ const newStock=stock-qty;
+ try{
+   // Atualiza somente se o estoque ainda for o mesmo, reduzindo risco de venda concorrente.
+   const upd=await sb.from('produtos').update({
+     quantidade:newStock,
+     status:newStock===0?'ESGOTADO':(p.status==='ESGOTADO'?'NORMAL':p.status),
+     atualizado_em:new Date().toISOString()
+   }).eq('id',id).eq('quantidade',stock).select('id');
+   if(upd.error)throw upd.error;
+   if(!upd.data||upd.data.length!==1)throw new Error('O estoque mudou em outra sessão. Atualize a página e tente novamente.');
+
+   const payment=$('salePayment').value;
+   const sale={
+     produto_id:id,produto_nome:p.nome,quantidade:qty,preco_unitario:price,
+     valor_total:Number((qty*price).toFixed(2)),forma_pagamento:payment,
+     parcelas:payment==='CRÉDITO'?Number($('saleInstallments').value||1):1,
+     cliente:$('saleClient').value.trim()||null,cidade:$('saleCity').value.trim()||null,
+     observacao:$('saleObs').value.trim()||null
+   };
+   const ins=await sb.from('vendas').insert(sale);
+   if(ins.error){
+     // Tenta restaurar o estoque se o registro da venda falhar.
+     await sb.from('produtos').update({quantidade:stock,status:p.status,atualizado_em:new Date().toISOString()}).eq('id',id).eq('quantidade',newStock);
+     throw ins.error;
+   }
+   $('saleMsg').innerHTML='<span class="saleok">✅ Venda registrada e estoque atualizado.</span>';
+   await load();
+   setTimeout(()=>saleDlg.close(),650);
+ }catch(err){$('saleMsg').textContent='❌ '+err.message}
+ finally{$('confirmSale').disabled=false}
+};
+
 window.del=async id=>{
  const p=items.find(x=>x.id===id);if(!confirm('Excluir '+p.nome+'?'))return;
  const {error}=await sb.from('produtos').delete().eq('id',id);if(error)alert(error.message);else load();
