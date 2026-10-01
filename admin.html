@@ -79,7 +79,7 @@ label{display:block;color:#bbb;font-size:12px;margin-bottom:5px}.grid{display:gr
 
 <section id="estoque" class="tab">
 <div class="card"><h2>📦 Cadastrar aparelho</h2>
-<form id="deviceForm">
+<form id="deviceForm"><input id="dId" type="hidden">
 <div class="grid">
 <div><label>Data da compra</label><input id="dData" type="date" required></div>
 <div><label>Fornecedor</label><select id="dFornecedor" required></select></div>
@@ -92,9 +92,9 @@ label{display:block;color:#bbb;font-size:12px;margin-bottom:5px}.grid{display:gr
 <div><label>Status</label><select id="dStatus"><option>EM ESTOQUE</option><option>RESERVADO</option><option>TROCA</option><option>DEFEITO</option></select></div>
 </div>
 <div><label>Observação</label><input id="dObs"></div>
-<div class="actions"><button class="primary">Salvar aparelho</button></div><div id="dMsg" class="msg"></div>
+<div class="actions"><button type="button" id="dCancelar" class="secondary" hidden>Cancelar edição</button><button class="primary" id="dSalvar">Salvar aparelho</button></div><div id="dMsg" class="msg"></div>
 </form></div>
-<div class="card"><h2>Estoque individual</h2><div class="scroll"><table><thead><tr><th>Data</th><th>Fornecedor</th><th>IMEI</th><th>Modelo</th><th>Cor</th><th>Memória</th><th>Custo</th><th>Status</th></tr></thead><tbody id="deviceRows"></tbody></table></div></div>
+<div class="card"><h2>Estoque individual</h2><div class="scroll"><table><thead><tr><th>Data</th><th>Fornecedor</th><th>IMEI</th><th>Modelo</th><th>Cor</th><th>Memória</th><th>Custo</th><th>Status</th><th>Ações</th></tr></thead><tbody id="deviceRows"></tbody></table></div></div>
 </section>
 
 <section id="venda" class="tab">
@@ -233,7 +233,7 @@ $('productForm').onsubmit=async e=>{
 async function loadDevices(){
  const {data,error}=await sb.from('aparelhos').select('*,fornecedores(nome)').order('criado_em',{ascending:false});
  if(error) throw error; devices=data||[];
- $('deviceRows').innerHTML=devices.map(x=>`<tr><td>${safe(x.data_compra)}</td><td>${safe(x.fornecedores?.nome||'-')}</td><td>${safe(x.imei)}</td><td>${safe(x.modelo)}</td><td>${safe(x.cor||'-')}</td><td>${safe(x.armazenamento)} / ${safe(x.ram)}</td><td>${money(x.valor_compra)}</td><td class="stock">${safe(x.status)}</td></tr>`).join('');
+ $('deviceRows').innerHTML=devices.map(x=>`<tr><td>${safe(x.data_compra)}</td><td>${safe(x.fornecedores?.nome||'-')}</td><td>${safe(x.imei)}</td><td>${safe(x.modelo)}</td><td>${safe(x.cor||'-')}</td><td>${safe(x.armazenamento)} / ${safe(x.ram)}</td><td>${money(x.valor_compra)}</td><td class="stock">${safe(x.status)}</td><td><button class="secondary" onclick="editDevice(${x.id})">Editar</button></td></tr>`).join('');
  const available=devices.filter(x=>x.status==='EM ESTOQUE');
  $('vDevice').innerHTML='<option value="">Selecione o aparelho...</option>'+available.map(x=>`<option value="${x.id}">${safe(x.modelo)} • ${safe(x.armazenamento)}/${safe(x.ram)} • IMEI ${safe(x.imei)}</option>`).join('');
 }
@@ -257,6 +257,38 @@ $('dImei').oninput=()=>{
 
 
 
+
+function resetDeviceForm(){
+ $('deviceForm').reset();
+ $('dId').value='';
+ $('dData').value=today();
+ $('dCancelar').hidden=true;
+ $('dSalvar').textContent='Salvar aparelho';
+ $('dMsg').textContent='';
+}
+
+window.editDevice=id=>{
+ const d=devices.find(x=>x.id===id);
+ if(!d)return;
+ $('dId').value=d.id;
+ $('dData').value=d.data_compra||today();
+ $('dFornecedor').value=d.fornecedor_id||'';
+ $('dCusto').value=d.valor_compra??'';
+ $('dImei').value=d.imei||'';
+ $('dModelo').value=d.modelo||'';
+ $('dArm').value=d.armazenamento||'';
+ $('dRam').value=d.ram||'';
+ $('dCor').value=d.cor||'';
+ $('dStatus').value=d.status||'EM ESTOQUE';
+ $('dObs').value=d.observacao||'';
+ $('dCancelar').hidden=false;
+ $('dSalvar').textContent='Salvar alterações';
+ $('dMsg').innerHTML='<span class="ok">✏️ Editando registro de entrada.</span>';
+ $('estoque').scrollIntoView({behavior:'smooth',block:'start'});
+};
+
+$('dCancelar').onclick=resetDeviceForm;
+
 $('deviceForm').onsubmit=async e=>{e.preventDefault();
  const imei=$('dImei').value.trim();
  if(!/^\d{15}$/.test(imei)){
@@ -264,7 +296,32 @@ $('deviceForm').onsubmit=async e=>{e.preventDefault();
    $('dImei').focus();
    return;
  }
- $('dMsg').textContent='Salvando...';const payload={data_compra:$('dData').value,fornecedor_id:Number($('dFornecedor').value),valor_compra:Number($('dCusto').value),imei:imei,modelo:$('dModelo').value.trim(),armazenamento:$('dArm').value.trim(),ram:$('dRam').value.trim(),cor:$('dCor').value.trim(),status:$('dStatus').value,observacao:$('dObs').value.trim()||null,atualizado_em:new Date().toISOString()};const {error}=await sb.from('aparelhos').insert(payload);if(error){$('dMsg').textContent=error.code==='23505'?'❌ Este IMEI já está cadastrado.':'❌ '+error.message;return}e.target.reset();$('dData').value=today();$('dMsg').innerHTML='<span class="ok">✅ Aparelho cadastrado no estoque.</span>';await refreshAll();}
+ $('dMsg').textContent='Salvando...';
+ const payload={
+  data_compra:$('dData').value,
+  fornecedor_id:Number($('dFornecedor').value),
+  valor_compra:Number($('dCusto').value),
+  imei:imei,
+  modelo:$('dModelo').value.trim(),
+  armazenamento:$('dArm').value.trim(),
+  ram:$('dRam').value.trim(),
+  cor:$('dCor').value.trim(),
+  status:$('dStatus').value,
+  observacao:$('dObs').value.trim()||null,
+  atualizado_em:new Date().toISOString()
+ };
+ const id=Number($('dId').value||0);
+ const result=id
+   ? await sb.from('aparelhos').update(payload).eq('id',id)
+   : await sb.from('aparelhos').insert(payload);
+ if(result.error){
+   $('dMsg').textContent=result.error.code==='23505'?'❌ Este IMEI já está cadastrado.':'❌ '+result.error.message;
+   return;
+ }
+ resetDeviceForm();
+ $('dMsg').innerHTML=`<span class="ok">✅ ${id?'Registro atualizado':'Aparelho cadastrado no estoque'}.</span>`;
+ await refreshAll();
+}
 
 function updateSaleInfo(){
  const d=devices.find(x=>x.id===Number($('vDevice').value));if(!d){$('deviceInfo').innerHTML='Selecione um aparelho para visualizar os dados.';$('vLucro').value='';return}
