@@ -29,7 +29,7 @@ header{position:sticky;top:0;z-index:10;background:#090909ee;border-bottom:1px s
 .installment-row:last-child{border-bottom:0}
 .installment-row.highlight{font-weight:900;color:#fff}
 .wa{display:block;text-decoration:none;text-align:center;background:#20b65a;color:white;border-radius:9px;padding:11px;font-weight:900}
-.badge{position:absolute;top:10px;left:10px;z-index:2;padding:6px 9px;border-radius:8px;background:var(--red);font-size:11px;font-weight:900}
+.stock{display:inline-block;margin:9px 0 0;padding:6px 9px;border-radius:8px;font-size:12px;font-weight:900}.stock-ok{background:#12351f;color:#7ee2a0;border:1px solid #246b3a}.stock-last{background:#493510;color:#ffd36a;border:1px solid #765819}.stock-out{background:#451518;color:#ff8b91;border:1px solid #72262b}.wa.disabled{background:#444;color:#aaa;pointer-events:none;cursor:not-allowed}.badge{position:absolute;top:10px;left:10px;z-index:2;padding:6px 9px;border-radius:8px;background:var(--red);font-size:11px;font-weight:900}
 .empty{grid-column:1/-1;text-align:center;color:#aaa;padding:50px}.foot{color:#888;text-align:center;padding:25px;border-top:1px solid #222}
 dialog{background:#101010;color:white;border:1px solid #333;border-radius:15px;width:min(430px,94vw)}
 .form{display:grid;gap:10px}.form input,.form select{width:100%}.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}.actions{display:flex;justify-content:flex-end;gap:8px;margin-top:8px}
@@ -84,17 +84,18 @@ function render(){
  const term=q.value.toLowerCase().trim(), m=marca.value, c=categoria.value;
  const list=products.filter(p=>(!term||(p.nome||'').toLowerCase().includes(term))&&(!m||p.marca===m)&&(!c||p.categoria===c));
  if(!list.length){grid.innerHTML='<div class="empty">Nenhum produto encontrado.</div>';return}
- grid.innerHTML=list.map(p=>`<article class="card">
+ grid.innerHTML=list.map(p=>{const qty=Math.max(0,Number(p.quantidade||0)); const stock=qty===0?'<div class="stock stock-out">🔴 Esgotado</div>':qty===1?'<div class="stock stock-last">🟠 Última unidade</div>':'<div class="stock stock-ok">🟢 Em estoque</div>'; return `<article class="card">
  ${p.status&&p.status!=='NORMAL'?`<div class="badge">${safe(p.status)}</div>`:''}
  <div class="pic">${p.imagem_url?`<img src="${safe(p.imagem_url)}" alt="${safe(p.nome)}" onerror="this.outerHTML='<div class=noimg>Imagem indisponível</div>'">`:'<div class="noimg">Foto em breve</div>'}</div>
  <div class="body"><div class="brandtag">${safe(p.marca)}</div><div class="name">${safe(p.nome)}</div>
  <div class="specs"><span class="spec">💾 ${safe(p.armazenamento)}</span><span class="spec">⚡ ${safe(p.ram)} RAM</span>${p.rede?`<span class="spec">📶 ${safe(p.rede)}</span>`:''}</div>
+ ${stock}
  <div class="pricepix"><span class="pix">PIX</span> ${money(p.preco_pix)}</div>
  ${Number(p.preco_cartao)>Number(p.preco_pix)?`<div class="pix-saving">💰 Economize ${money(Number(p.preco_cartao)-Number(p.preco_pix))} no Pix</div>`:''}
  <div class="cardprice">💳 ${money(p.preco_cartao)} no cartão</div>
  <div class="installment-main">12x de <strong>${money(Number(p.preco_cartao)/12)}</strong> sem juros</div>
  <button class="installment-btn" onclick="showInstallments(${Number(p.preco_cartao)}, '${safe(p.nome).replace(/'/g,"&#39;")}')">Ver todas as parcelas</button>
- <a class="wa" target="_blank" href="https://wa.me/5581997232006?text=${encodeURIComponent('Olá! Tenho interesse no '+p.nome+' '+p.armazenamento+' / '+p.ram+' RAM.')}">Chamar no WhatsApp</a></div></article>`).join('');
+ ${qty>0?`<a class="wa" target="_blank" href="https://wa.me/5581997232006?text=${encodeURIComponent('Olá! Tenho interesse no '+p.nome+' '+p.armazenamento+' / '+p.ram+' RAM.')}">Chamar no WhatsApp</a>`:'<span class="wa disabled">Produto esgotado</span>'}</div></article>`}).join('');
 }
 function showInstallments(total,nome){
  document.getElementById('parcelasTitle').textContent='Parcelamento • '+nome;

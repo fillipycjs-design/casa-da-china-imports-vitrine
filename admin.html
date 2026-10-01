@@ -16,7 +16,7 @@ dialog{width:min(650px,95vw);background:#111;color:white;border:1px solid #333;b
 <div id="authStatus" class="msg">Validando acesso...</div>
 <div id="panel" hidden>
 <div class="toolbar"><input id="search" placeholder="Buscar produto..."><button class="primary" id="newBtn">+ Novo produto</button></div>
-<div class="tablewrap"><table><thead><tr><th>Foto</th><th>Produto</th><th>Especificação</th><th>Pix</th><th>Cartão</th><th>Status</th><th>Ações</th></tr></thead><tbody id="tbody"></tbody></table></div>
+<div class="tablewrap"><table><thead><tr><th>Foto</th><th>Produto</th><th>Especificação</th><th>Pix</th><th>Cartão</th><th>Estoque</th><th>Status</th><th>Ações</th></tr></thead><tbody id="tbody"></tbody></table></div>
 </div></main>
 
 <dialog id="dlg"><form class="form" id="form">
@@ -24,7 +24,8 @@ dialog{width:min(650px,95vw);background:#111;color:white;border:1px solid #333;b
 <div class="row"><div><label>Nome/modelo</label><input id="nome" required placeholder="POCO X8 Pro"></div><div><label>Marca</label><select id="marca" required><option>XIAOMI</option><option>POCO</option><option>REALME</option></select></div></div>
 <div class="row3"><div><label>Categoria</label><select id="categoria"><option>SMARTPHONE</option><option>TABLET</option></select></div><div><label>Armazenamento</label><input id="armazenamento" required placeholder="256GB"></div><div><label>RAM</label><input id="ram" required placeholder="8GB"></div></div>
 <div class="row3"><div><label>Rede</label><input id="rede" placeholder="5G NFC"></div><div><label>Pix (R$)</label><input id="pix" type="number" step=".01" required></div><div><label>Cartão (R$)</label><input id="cartao" type="number" step=".01" required></div></div>
-<div class="row3"><div><label>Status</label><select id="status"><option>NORMAL</option><option>OFERTA</option><option>LANÇAMENTO</option><option>ESGOTADO</option></select></div><div><label>Ordem</label><input id="ordem" type="number" value="0"></div><div><label>Visível</label><select id="ativo"><option value="true">Sim</option><option value="false">Não</option></select></div></div>
+<div class="row3"><div><label>Quantidade em estoque</label><input id="quantidade" type="number" min="0" step="1" value="0" required></div><div><label>Status</label><select id="status"><option>NORMAL</option><option>OFERTA</option><option>LANÇAMENTO</option><option>ESGOTADO</option></select></div><div><label>Ordem</label><input id="ordem" type="number" value="0"></div></div>
+<div><label>Visível</label><select id="ativo"><option value="true">Sim</option><option value="false">Não</option></select></div>
 <div><label>Foto do produto</label><input id="foto" type="file" accept="image/png,image/jpeg,image/webp"></div>
 <div class="preview" id="preview"><span style="color:#777">Sem imagem</span></div>
 <div id="formMsg" class="status"></div>
@@ -50,11 +51,11 @@ async function load(){
 function render(){
  const t=$('search').value.toLowerCase();
  const a=items.filter(p=>(p.nome||'').toLowerCase().includes(t));
- $('tbody').innerHTML=a.map(p=>`<tr><td>${p.imagem_url?`<img class="thumb" src="${safe(p.imagem_url)}">`:'—'}</td><td><b>${safe(p.nome)}</b><br><span class=status>${safe(p.marca)}</span></td><td>${safe(p.armazenamento)} / ${safe(p.ram)} RAM<br>${safe(p.rede||'')}</td><td>${money(p.preco_pix)}</td><td>${money(p.preco_cartao)}</td><td>${safe(p.status)}</td><td><button class="secondary" onclick="edit(${p.id})">Editar</button> <button class="danger" onclick="del(${p.id})">Excluir</button></td></tr>`).join('');
+ $('tbody').innerHTML=a.map(p=>`<tr><td>${p.imagem_url?`<img class="thumb" src="${safe(p.imagem_url)}">`:'—'}</td><td><b>${safe(p.nome)}</b><br><span class=status>${safe(p.marca)}</span></td><td>${safe(p.armazenamento)} / ${safe(p.ram)} RAM<br>${safe(p.rede||'')}</td><td>${money(p.preco_pix)}</td><td>${money(p.preco_cartao)}</td><td><b>${Number(p.quantidade||0)}</b></td><td>${safe(p.status)}</td><td><button class="secondary" onclick="edit(${p.id})">Editar</button> <button class="danger" onclick="del(${p.id})">Excluir</button></td></tr>`).join('');
 }
 $('search').oninput=render;
-$('newBtn').onclick=()=>{form.reset();$('pid').value='';$('ordem').value=0;currentImage=null;$('preview').innerHTML='<span style="color:#777">Sem imagem</span>';$('formTitle').textContent='Novo produto';$('formMsg').textContent='';dlg.showModal()};
-window.edit=id=>{const p=items.find(x=>x.id===id); if(!p)return;$('pid').value=p.id;$('nome').value=p.nome;$('marca').value=p.marca;$('categoria').value=p.categoria;$('armazenamento').value=p.armazenamento;$('ram').value=p.ram;$('rede').value=p.rede||'';$('pix').value=p.preco_pix;$('cartao').value=p.preco_cartao;$('status').value=p.status||'NORMAL';$('ordem').value=p.ordem||0;$('ativo').value=String(p.ativo);currentImage=p.imagem_url||null;$('preview').innerHTML=currentImage?`<img src="${safe(currentImage)}">`:'<span style="color:#777">Sem imagem</span>';$('formTitle').textContent='Editar produto';$('formMsg').textContent='';dlg.showModal()};
+$('newBtn').onclick=()=>{form.reset();$('pid').value='';$('ordem').value=0;$('quantidade').value=0;currentImage=null;$('preview').innerHTML='<span style="color:#777">Sem imagem</span>';$('formTitle').textContent='Novo produto';$('formMsg').textContent='';dlg.showModal()};
+window.edit=id=>{const p=items.find(x=>x.id===id); if(!p)return;$('pid').value=p.id;$('nome').value=p.nome;$('marca').value=p.marca;$('categoria').value=p.categoria;$('armazenamento').value=p.armazenamento;$('ram').value=p.ram;$('rede').value=p.rede||'';$('pix').value=p.preco_pix;$('cartao').value=p.preco_cartao;$('status').value=p.status||'NORMAL';$('quantidade').value=Number(p.quantidade||0);$('ordem').value=p.ordem||0;$('ativo').value=String(p.ativo);currentImage=p.imagem_url||null;$('preview').innerHTML=currentImage?`<img src="${safe(currentImage)}">`:'<span style="color:#777">Sem imagem</span>';$('formTitle').textContent='Editar produto';$('formMsg').textContent='';dlg.showModal()};
 $('foto').onchange=e=>{const f=e.target.files[0];if(f){$('preview').innerHTML=`<img src="${window.URL.createObjectURL(f)}">`}};
 async function findReusableImage(name){
  const normalized=name.trim().toLowerCase();
@@ -74,7 +75,7 @@ $('form').onsubmit=async e=>{
    let img=currentImage; const file=$('foto').files[0];
    if(file) img=await upload(file,$('nome').value);
    if(!img) img=await findReusableImage($('nome').value);
-   const data={nome:$('nome').value.trim(),marca:$('marca').value,categoria:$('categoria').value,armazenamento:$('armazenamento').value.trim(),ram:$('ram').value.trim(),rede:$('rede').value.trim(),preco_pix:Number($('pix').value),preco_cartao:Number($('cartao').value),status:$('status').value,ordem:Number($('ordem').value||0),ativo:$('ativo').value==='true',imagem_url:img,atualizado_em:new Date().toISOString()};
+   const data={nome:$('nome').value.trim(),marca:$('marca').value,categoria:$('categoria').value,armazenamento:$('armazenamento').value.trim(),ram:$('ram').value.trim(),rede:$('rede').value.trim(),preco_pix:Number($('pix').value),preco_cartao:Number($('cartao').value),quantidade:Math.max(0,Number($('quantidade').value||0)),status:$('status').value,ordem:Number($('ordem').value||0),ativo:$('ativo').value==='true',imagem_url:img,atualizado_em:new Date().toISOString()};
    const id=$('pid').value;
    const res=id?await sb.from('produtos').update(data).eq('id',id):await sb.from('produtos').insert(data);
    if(res.error)throw res.error;
