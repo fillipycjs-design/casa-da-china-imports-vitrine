@@ -1,189 +1,166 @@
 <!doctype html>
-<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Admin | Casa da China Imports</title>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Admin • Casa da China Imports</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
-:root{--bg:#080808;--card:#141414;--red:#e50914;--line:#303030;--muted:#aaa}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:white;font-family:Arial,sans-serif}.wrap{max-width:1180px;margin:auto;padding:18px}
-header{border-bottom:1px solid var(--line);background:#0b0b0b}.top{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
-h1{font-size:22px}.red{color:var(--red)}button{border:0;border-radius:9px;padding:10px 13px;font-weight:800;cursor:pointer}.primary{background:var(--red);color:white}.secondary{background:#222;color:white;border:1px solid #333}.danger{background:#591014;color:white}
-.toolbar{display:flex;gap:8px;margin:18px 0;flex-wrap:wrap}.toolbar input{flex:1;min-width:220px}
-input,select{background:#151515;border:1px solid #333;color:white;border-radius:8px;padding:10px;width:100%}
-table{width:100%;border-collapse:collapse;background:#111}th,td{padding:10px;border-bottom:1px solid #292929;text-align:left;font-size:13px}th{color:#aaa}.thumb{width:55px;height:55px;object-fit:contain;background:white;border-radius:7px}.tablewrap{overflow:auto;border:1px solid #292929;border-radius:12px}
-dialog{width:min(650px,95vw);background:#111;color:white;border:1px solid #333;border-radius:15px}.form{display:grid;gap:11px}.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}.row3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.actions{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}.preview{height:180px;background:white;border-radius:10px;display:flex;align-items:center;justify-content:center;overflow:hidden}.preview img{width:100%;height:100%;object-fit:contain}.msg{padding:10px;border-radius:8px;background:#1a1a1a;color:#ccc}.status{font-size:12px;color:#aaa}
-.saleinfo{background:#181818;border:1px solid #333;border-radius:10px;padding:12px;line-height:1.5}
-.saleok{color:#7ee787}.salewarn{color:#ffcc66}@media(max-width:650px){.row,.row3{grid-template-columns:1fr}th:nth-child(3),td:nth-child(3){display:none}}
-</style></head><body>
-<header><div class="wrap top"><h1>CASA DA CHINA <span class="red">IMPORTS</span> — Admin</h1><div><button class="secondary" onclick="location.href='index.html'">Ver vitrine</button> <button class="danger" id="logout">Sair</button></div></div></header>
-<main class="wrap">
-<div id="authStatus" class="msg">Validando acesso...</div>
-<div id="panel" hidden>
-<div class="toolbar"><input id="search" placeholder="Buscar produto..."><button class="primary" id="newBtn">+ Novo produto</button></div>
-<div class="tablewrap"><table><thead><tr><th>Foto</th><th>Produto</th><th>Especificação</th><th>Pix</th><th>Cartão</th><th>Estoque</th><th>Status</th><th>Ações</th></tr></thead><tbody id="tbody"></tbody></table></div>
-</div></main>
+*{box-sizing:border-box}body{margin:0;background:#080808;color:#f5f5f5;font-family:Arial,sans-serif}
+header{position:sticky;top:0;z-index:5;background:#0d0d0df2;border-bottom:1px solid #252525;padding:14px 18px;display:flex;justify-content:space-between;align-items:center}
+h1,h2{margin:.3em 0}.brand b{color:#e11}main{max-width:1250px;margin:auto;padding:18px}
+button,.btn{border:0;border-radius:9px;padding:10px 13px;font-weight:700;cursor:pointer}
+.primary{background:#d71920;color:white}.secondary{background:#292929;color:white}.danger{background:#641b1b;color:white}
+button:disabled{opacity:.45;cursor:not-allowed}input,select,textarea{width:100%;background:#121212;color:white;border:1px solid #383838;border-radius:8px;padding:10px}
+label{display:block;color:#bbb;font-size:12px;margin-bottom:5px}.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.card{background:#111;border:1px solid #292929;border-radius:14px;padding:15px;margin-bottom:16px}
+.tabs{display:flex;gap:8px;overflow:auto;margin-bottom:16px}.tabs button.active{background:#d71920}.tabs button{white-space:nowrap;background:#242424;color:white}
+.tab{display:none}.tab.active{display:block}table{width:100%;border-collapse:collapse;min-width:900px}th,td{padding:10px;border-bottom:1px solid #282828;text-align:left;font-size:13px}th{color:#aaa}
+.scroll{overflow:auto}.kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:10px}.kpi{background:#151515;border:1px solid #292929;border-radius:12px;padding:14px}.kpi small{color:#aaa}.kpi strong{display:block;font-size:22px;margin-top:6px}
+.msg{margin-top:10px;color:#ccc}.ok{color:#73dc8c}.bad{color:#ff7777}.stock{font-weight:700}dialog{background:#111;color:white;border:1px solid #444;border-radius:14px;max-width:760px;width:94%}dialog::backdrop{background:#000a}
+.actions{display:flex;gap:8px;justify-content:flex-end;margin-top:14px}.two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media(max-width:850px){.grid,.kpis{grid-template-columns:1fr 1fr}}@media(max-width:560px){.grid,.two,.kpis{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header><div class="brand"><strong>CASA DA CHINA <b>IMPORTS</b></strong><div style="font-size:12px;color:#999">Controle interno • IMEI</div></div><div><a href="index.html" class="btn secondary">Vitrine</a> <button id="logout" class="secondary">Sair</button></div></header>
+<main>
+<div id="authMsg" class="card">Verificando acesso...</div>
+<div id="app" hidden>
+<div class="tabs">
+<button data-tab="dashboard" class="active">📊 Dashboard</button>
+<button data-tab="estoque">📦 Estoque / IMEI</button>
+<button data-tab="venda">🛒 Registrar venda</button>
+<button data-tab="fornecedores">🚚 Fornecedores</button>
+<button data-tab="historico">🧾 Histórico</button>
+</div>
 
-<dialog id="dlg"><form class="form" id="form">
-<h2 id="formTitle">Novo produto</h2><input type="hidden" id="pid">
-<div class="row"><div><label>Nome/modelo</label><input id="nome" required placeholder="POCO X8 Pro"></div><div><label>Marca</label><select id="marca" required><option>XIAOMI</option><option>POCO</option><option>REALME</option></select></div></div>
-<div class="row3"><div><label>Categoria</label><select id="categoria"><option>SMARTPHONE</option><option>TABLET</option></select></div><div><label>Armazenamento</label><input id="armazenamento" required placeholder="256GB"></div><div><label>RAM</label><input id="ram" required placeholder="8GB"></div></div>
-<div class="row3"><div><label>Rede</label><input id="rede" placeholder="5G NFC"></div><div><label>Pix (R$)</label><input id="pix" type="number" step=".01" required></div><div><label>Cartão (R$)</label><input id="cartao" type="number" step=".01" required></div></div>
-<div class="row3"><div><label>Quantidade em estoque</label><input id="quantidade" type="number" min="0" step="1" value="0" required></div><div><label>Status</label><select id="status"><option>NORMAL</option><option>OFERTA</option><option>LANÇAMENTO</option><option>ESGOTADO</option></select></div><div><label>Ordem</label><input id="ordem" type="number" value="0"></div></div>
-<div><label>Visível</label><select id="ativo"><option value="true">Sim</option><option value="false">Não</option></select></div>
-<div><label>Foto do produto</label><input id="foto" type="file" accept="image/png,image/jpeg,image/webp"></div>
-<div class="preview" id="preview"><span style="color:#777">Sem imagem</span></div>
-<div id="formMsg" class="status"></div>
-<div class="actions"><button type="button" class="secondary" onclick="dlg.close()">Cancelar</button><button class="primary" id="saveBtn">Salvar produto</button></div>
-</form></dialog>
+<section id="dashboard" class="tab active">
+<div class="kpis">
+<div class="kpi"><small>Aparelhos em estoque</small><strong id="kStock">0</strong></div>
+<div class="kpi"><small>Capital em estoque</small><strong id="kCapital">R$ 0,00</strong></div>
+<div class="kpi"><small>Faturamento hoje</small><strong id="kToday">R$ 0,00</strong></div>
+<div class="kpi"><small>Faturamento mês</small><strong id="kMonth">R$ 0,00</strong></div>
+<div class="kpi"><small>Lucro bruto mês</small><strong id="kProfit">R$ 0,00</strong></div>
+</div>
+</section>
 
-<dialog id="saleDlg"><form class="form" id="saleForm">
-<h2>🛒 Registrar venda</h2>
-<input type="hidden" id="salePid">
-<div class="saleinfo" id="saleProduct"></div>
-<div class="row">
-  <div><label>Quantidade vendida</label><input id="saleQty" type="number" min="1" step="1" value="1" required></div>
-  <div><label>Preço unitário da venda (R$)</label><input id="salePrice" type="number" min="0" step=".01" required></div>
+<section id="estoque" class="tab">
+<div class="card"><h2>📦 Cadastrar aparelho</h2>
+<form id="deviceForm">
+<div class="grid">
+<div><label>Data da compra</label><input id="dData" type="date" required></div>
+<div><label>Fornecedor</label><select id="dFornecedor" required></select></div>
+<div><label>Valor de compra (R$)</label><input id="dCusto" type="number" min="0" step=".01" required></div>
+<div><label>Número IMEI</label><input id="dImei" inputmode="numeric" maxlength="20" required placeholder="Digite ou leia o IMEI"></div>
+<div><label>Modelo</label><input id="dModelo" required></div>
+<div><label>Armazenamento</label><input id="dArm" required placeholder="Ex.: 256GB"></div>
+<div><label>Memória RAM</label><input id="dRam" required placeholder="Ex.: 8GB"></div>
+<div><label>Status</label><select id="dStatus"><option>EM ESTOQUE</option><option>RESERVADO</option><option>TROCA</option><option>DEFEITO</option></select></div>
 </div>
-<div class="row">
-  <div><label>Forma de pagamento</label>
-    <select id="salePayment" required>
-      <option value="PIX">PIX</option><option value="DINHEIRO">DINHEIRO</option>
-      <option value="DÉBITO">DÉBITO</option><option value="CRÉDITO">CRÉDITO</option>
-    </select>
-  </div>
-  <div><label>Parcelas</label><select id="saleInstallments"></select></div>
-</div>
-<div class="row">
-  <div><label>Cliente (opcional)</label><input id="saleClient" placeholder="Nome do cliente"></div>
-  <div><label>Cidade (opcional)</label><input id="saleCity" placeholder="Cidade"></div>
-</div>
-<div><label>Observação (opcional)</label><input id="saleObs" placeholder="Ex.: venda balcão"></div>
-<div class="saleinfo"><b>Total:</b> <span id="saleTotal">R$ 0,00</span> &nbsp; • &nbsp; <b>Estoque após venda:</b> <span id="saleRemaining">0</span></div>
-<div id="saleMsg" class="status"></div>
-<div class="actions">
-  <button type="button" class="secondary" onclick="saleDlg.close()">Cancelar</button>
-  <button class="primary" id="confirmSale">Confirmar venda</button>
-</div>
-</form></dialog>
+<div><label>Observação</label><input id="dObs"></div>
+<div class="actions"><button class="primary">Salvar aparelho</button></div><div id="dMsg" class="msg"></div>
+</form></div>
+<div class="card"><h2>Estoque individual</h2><div class="scroll"><table><thead><tr><th>Data</th><th>Fornecedor</th><th>IMEI</th><th>Modelo</th><th>Memória</th><th>Custo</th><th>Status</th></tr></thead><tbody id="deviceRows"></tbody></table></div></div>
+</section>
 
+<section id="venda" class="tab">
+<div class="card"><h2>🛒 Registrar venda</h2>
+<form id="saleForm">
+<div class="grid">
+<div><label>Data da venda</label><input id="vData" type="date" required></div>
+<div><label>Aparelho / IMEI</label><select id="vDevice" required></select></div>
+<div><label>Nome do cliente</label><input id="vCliente" required></div>
+<div><label>CPF</label><input id="vCpf" inputmode="numeric" placeholder="000.000.000-00"></div>
+<div><label>Cidade</label><input id="vCidade" required></div>
+<div><label>Estado</label><select id="vEstado" required><option value="">UF</option><option>AC</option><option>AL</option><option>AP</option><option>AM</option><option>BA</option><option>CE</option><option>DF</option><option>ES</option><option>GO</option><option>MA</option><option>MT</option><option>MS</option><option>MG</option><option>PA</option><option>PB</option><option>PR</option><option>PE</option><option>PI</option><option>RJ</option><option>RN</option><option>RS</option><option>RO</option><option>RR</option><option>SC</option><option>SP</option><option>SE</option><option>TO</option></select></div>
+<div><label>Telefone</label><input id="vTelefone" inputmode="tel" required></div>
+<div><label>Valor da venda (R$)</label><input id="vValor" type="number" min="0" step=".01" required></div>
+<div><label>Forma de pagamento</label><select id="vPagamento"><option>PIX</option><option>DINHEIRO</option><option>DÉBITO</option><option>CRÉDITO</option></select></div>
+<div><label>Parcelas</label><select id="vParcelas"><option value="1">1x</option><option value="2">2x</option><option value="3">3x</option><option value="4">4x</option><option value="5">5x</option><option value="6">6x</option><option value="7">7x</option><option value="8">8x</option><option value="9">9x</option><option value="10">10x</option><option value="11">11x</option><option value="12">12x</option></select></div>
+<div><label>Garantia</label><select id="vGarantia" required><option value="3 MESES">3 meses</option><option value="1 ANO">1 ano</option></select></div>
+<div><label>Lucro bruto</label><input id="vLucro" readonly></div>
+</div>
+<div id="deviceInfo" class="card" style="margin-top:12px"></div>
+<div class="actions"><button class="primary">Confirmar venda e dar baixa</button></div><div id="vMsg" class="msg"></div>
+</form></div>
+</section>
+
+<section id="fornecedores" class="tab">
+<div class="card"><h2>🚚 Cadastrar fornecedor</h2>
+<form id="supplierForm"><div class="grid">
+<div><label>Nome do fornecedor</label><input id="fNome" required></div><div><label>Telefone</label><input id="fTel"></div><div><label>Cidade</label><input id="fCidade"></div><div><label>Observação</label><input id="fObs"></div>
+</div><div class="actions"><button class="primary">Adicionar fornecedor</button></div><div id="fMsg" class="msg"></div></form></div>
+<div class="card"><div class="scroll"><table><thead><tr><th>Fornecedor</th><th>Telefone</th><th>Cidade</th><th>Status</th><th>Ação</th></tr></thead><tbody id="supplierRows"></tbody></table></div></div>
+</section>
+
+<section id="historico" class="tab">
+<div class="card"><h2>🧾 Histórico de vendas</h2><div class="scroll"><table><thead><tr><th>Data</th><th>Cliente</th><th>CPF</th><th>Cidade/UF</th><th>Telefone</th><th>Modelo</th><th>Memória</th><th>IMEI</th><th>Venda</th><th>Garantia</th><th>Lucro</th></tr></thead><tbody id="saleRows"></tbody></table></div></div>
+</section>
+</div>
+</main>
 <script>
-const SUPABASE_URL='https://tkrexoazcadbyezdwwkn.supabase.co', KEY='sb_publishable_XL9bwwKoLCRvGegqaqoedw_38BW1phc', ADMIN_UID='5679fdda-515c-4e08-ad2e-61285478fe78';
-const sb=supabase.createClient(SUPABASE_URL,KEY); let items=[], currentImage=null;
-const $=id=>document.getElementById(id);
-function money(v){return Number(v||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'})}
-function safe(s){return String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
-function slug(s){return s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')}
-async function guard(){
+const sb=supabase.createClient('https://tkrexoazcadbyezdwwkn.supabase.co','sb_publishable_XL9bwwKoLCRvGegqaqoedw_38BW1phc');
+const ADMIN='5679fdda-515c-4e08-ad2e-61285478fe78'; const $=id=>document.getElementById(id);
+const money=n=>Number(n||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
+const safe=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const today=()=>new Date().toISOString().slice(0,10);
+let suppliers=[],devices=[],sales=[];
+
+document.querySelectorAll('.tabs button').forEach(b=>b.onclick=()=>{document.querySelectorAll('.tabs button,.tab').forEach(x=>x.classList.remove('active'));b.classList.add('active');$(b.dataset.tab).classList.add('active')});
+
+async function init(){
  const {data:{user}}=await sb.auth.getUser();
- if(!user||user.id!==ADMIN_UID){location.href='index.html';return}
- $('authStatus').textContent='🔐 Acesso autorizado';$('panel').hidden=false;load();
+ if(!user||user.id!==ADMIN){$('authMsg').innerHTML='❌ Acesso não autorizado. <a href="index.html" style="color:#fff">Voltar para a vitrine</a>';return}
+ $('authMsg').hidden=true;$('app').hidden=false;$('dData').value=today();$('vData').value=today();
+ await refreshAll();
 }
-async function load(){
- const {data,error}=await sb.from('produtos').select('*').order('ordem').order('id',{ascending:false});
- if(error){$('authStatus').textContent='❌ '+error.message;return} items=data||[];render();
-}
-function render(){
- const t=$('search').value.toLowerCase();
- const a=items.filter(p=>(p.nome||'').toLowerCase().includes(t));
- $('tbody').innerHTML=a.map(p=>`<tr><td>${p.imagem_url?`<img class="thumb" src="${safe(p.imagem_url)}">`:'—'}</td><td><b>${safe(p.nome)}</b><br><span class=status>${safe(p.marca)}</span></td><td>${safe(p.armazenamento)} / ${safe(p.ram)} RAM<br>${safe(p.rede||'')}</td><td>${money(p.preco_pix)}</td><td>${money(p.preco_cartao)}</td><td><b>${Number(p.quantidade||0)}</b></td><td>${safe(p.status)}</td><td><button class="primary" onclick="sell(${p.id})" ${Number(p.quantidade||0)<=0?'disabled title="Sem estoque"':''}>🛒 Vender</button> <button class="secondary" onclick="edit(${p.id})">Editar</button> <button class="danger" onclick="del(${p.id})">Excluir</button></td></tr>`).join('');
-}
-$('search').oninput=render;
-$('newBtn').onclick=()=>{form.reset();$('pid').value='';$('ordem').value=0;$('quantidade').value=0;currentImage=null;$('preview').innerHTML='<span style="color:#777">Sem imagem</span>';$('formTitle').textContent='Novo produto';$('formMsg').textContent='';dlg.showModal()};
-window.edit=id=>{const p=items.find(x=>x.id===id); if(!p)return;$('pid').value=p.id;$('nome').value=p.nome;$('marca').value=p.marca;$('categoria').value=p.categoria;$('armazenamento').value=p.armazenamento;$('ram').value=p.ram;$('rede').value=p.rede||'';$('pix').value=p.preco_pix;$('cartao').value=p.preco_cartao;$('status').value=p.status||'NORMAL';$('quantidade').value=Number(p.quantidade||0);$('ordem').value=p.ordem||0;$('ativo').value=String(p.ativo);currentImage=p.imagem_url||null;$('preview').innerHTML=currentImage?`<img src="${safe(currentImage)}">`:'<span style="color:#777">Sem imagem</span>';$('formTitle').textContent='Editar produto';$('formMsg').textContent='';dlg.showModal()};
-$('foto').onchange=e=>{const f=e.target.files[0];if(f){$('preview').innerHTML=`<img src="${window.URL.createObjectURL(f)}">`}};
-async function findReusableImage(name){
- const normalized=name.trim().toLowerCase();
- const p=items.find(x=>(x.nome||'').trim().toLowerCase()===normalized && x.imagem_url);
- return p?.imagem_url||null;
-}
-async function upload(file,name){
- const ext=(file.name.split('.').pop()||'webp').toLowerCase();
- const path=`modelos/${slug(name)}-${Date.now()}.${ext}`;
- const {error}=await sb.storage.from('fotos-produtos').upload(path,file,{cacheControl:'3600',upsert:false});
- if(error)throw error;
- return sb.storage.from('fotos-produtos').getPublicUrl(path).data.publicUrl;
-}
-$('form').onsubmit=async e=>{
- e.preventDefault();$('saveBtn').disabled=true;$('formMsg').textContent='Salvando...';
- try{
-   let img=currentImage; const file=$('foto').files[0];
-   if(file) img=await upload(file,$('nome').value);
-   if(!img) img=await findReusableImage($('nome').value);
-   const data={nome:$('nome').value.trim(),marca:$('marca').value,categoria:$('categoria').value,armazenamento:$('armazenamento').value.trim(),ram:$('ram').value.trim(),rede:$('rede').value.trim(),preco_pix:Number($('pix').value),preco_cartao:Number($('cartao').value),quantidade:Math.max(0,Number($('quantidade').value||0)),status:$('status').value,ordem:Number($('ordem').value||0),ativo:$('ativo').value==='true',imagem_url:img,atualizado_em:new Date().toISOString()};
-   const id=$('pid').value;
-   const res=id?await sb.from('produtos').update(data).eq('id',id):await sb.from('produtos').insert(data);
-   if(res.error)throw res.error;
-   dlg.close();await load();
- }catch(err){$('formMsg').textContent='❌ '+err.message}
- finally{$('saveBtn').disabled=false}
-};
+async function refreshAll(){await Promise.all([loadSuppliers(),loadDevices(),loadSales()]);renderDashboard();}
 
-for(let i=1;i<=12;i++) $('saleInstallments').insertAdjacentHTML('beforeend',`<option value="${i}">${i}x</option>`);
-function updateSaleSummary(){
- const p=items.find(x=>x.id===Number($('salePid').value)); if(!p)return;
- const q=Math.max(1,Number($('saleQty').value||1)), price=Math.max(0,Number($('salePrice').value||0));
- $('saleTotal').textContent=money(q*price);
- $('saleRemaining').textContent=Math.max(0,Number(p.quantidade||0)-q);
+async function loadSuppliers(){
+ const {data,error}=await sb.from('fornecedores').select('*').order('nome');
+ if(error) throw error; suppliers=data||[];
+ $('dFornecedor').innerHTML='<option value="">Selecione...</option>'+suppliers.filter(x=>x.ativo).map(x=>`<option value="${x.id}">${safe(x.nome)}</option>`).join('');
+ $('supplierRows').innerHTML=suppliers.map(x=>`<tr><td>${safe(x.nome)}</td><td>${safe(x.telefone||'-')}</td><td>${safe(x.cidade||'-')}</td><td>${x.ativo?'ATIVO':'INATIVO'}</td><td><button class="secondary" onclick="toggleSupplier(${x.id},${!x.ativo})">${x.ativo?'Desativar':'Ativar'}</button></td></tr>`).join('');
 }
-$('saleQty').oninput=updateSaleSummary;$('salePrice').oninput=updateSaleSummary;
-$('salePayment').onchange=()=>{
- const credit=$('salePayment').value==='CRÉDITO';
- $('saleInstallments').disabled=!credit;
- if(!credit)$('saleInstallments').value='1';
-};
-window.sell=id=>{
- const p=items.find(x=>x.id===id); if(!p)return;
- const stock=Number(p.quantidade||0);
- if(stock<=0){alert('Produto sem estoque.');return}
- $('salePid').value=p.id;$('saleQty').value=1;$('saleQty').max=stock;
- $('salePrice').value=Number(p.preco_pix||0).toFixed(2);
- $('salePayment').value='PIX';$('saleInstallments').value='1';$('saleInstallments').disabled=true;
- $('saleClient').value='';$('saleCity').value='';$('saleObs').value='';$('saleMsg').textContent='';
- $('saleProduct').innerHTML=`<b>${safe(p.nome)}</b><br>${safe(p.armazenamento)} / ${safe(p.ram)} RAM<br>Estoque atual: <b>${stock}</b>`;
- updateSaleSummary();saleDlg.showModal();
-};
-$('saleForm').onsubmit=async e=>{
- e.preventDefault();
- const id=Number($('salePid').value), p=items.find(x=>x.id===id); if(!p)return;
- const qty=Math.max(1,Number($('saleQty').value||1)), stock=Number(p.quantidade||0);
- const price=Math.max(0,Number($('salePrice').value||0));
- if(qty>stock){$('saleMsg').textContent='❌ Quantidade maior que o estoque disponível.';return}
- if(price<=0){$('saleMsg').textContent='❌ Informe um preço de venda válido.';return}
- $('confirmSale').disabled=true;$('saleMsg').textContent='Registrando venda...';
- const newStock=stock-qty;
- try{
-   // Atualiza somente se o estoque ainda for o mesmo, reduzindo risco de venda concorrente.
-   const upd=await sb.from('produtos').update({
-     quantidade:newStock,
-     status:newStock===0?'ESGOTADO':(p.status==='ESGOTADO'?'NORMAL':p.status),
-     atualizado_em:new Date().toISOString()
-   }).eq('id',id).eq('quantidade',stock).select('id');
-   if(upd.error)throw upd.error;
-   if(!upd.data||upd.data.length!==1)throw new Error('O estoque mudou em outra sessão. Atualize a página e tente novamente.');
+async function loadDevices(){
+ const {data,error}=await sb.from('aparelhos').select('*,fornecedores(nome)').order('criado_em',{ascending:false});
+ if(error) throw error; devices=data||[];
+ $('deviceRows').innerHTML=devices.map(x=>`<tr><td>${safe(x.data_compra)}</td><td>${safe(x.fornecedores?.nome||'-')}</td><td>${safe(x.imei)}</td><td>${safe(x.modelo)}</td><td>${safe(x.armazenamento)} / ${safe(x.ram)}</td><td>${money(x.valor_compra)}</td><td class="stock">${safe(x.status)}</td></tr>`).join('');
+ const available=devices.filter(x=>x.status==='EM ESTOQUE');
+ $('vDevice').innerHTML='<option value="">Selecione o aparelho...</option>'+available.map(x=>`<option value="${x.id}">${safe(x.modelo)} • ${safe(x.armazenamento)}/${safe(x.ram)} • IMEI ${safe(x.imei)}</option>`).join('');
+}
+async function loadSales(){
+ const {data,error}=await sb.from('vendas').select('*').order('criado_em',{ascending:false}).limit(1000);
+ if(error) throw error; sales=data||[];
+ $('saleRows').innerHTML=sales.map(v=>{const lucro=Number(v.valor_total||0)-Number(v.custo_total||0);return `<tr><td>${safe(v.data_venda||String(v.criado_em||'').slice(0,10))}</td><td>${safe(v.cliente||'-')}</td><td>${safe(v.cpf||'-')}</td><td>${safe(v.cidade||'-')}/${safe(v.estado||'-')}</td><td>${safe(v.telefone||'-')}</td><td>${safe(v.produto_nome||'-')}</td><td>${safe(v.armazenamento||'-')} / ${safe(v.ram||'-')}</td><td>${safe(v.imei||'-')}</td><td>${money(v.valor_total)}</td><td>${safe(v.garantia||'-')}</td><td>${money(lucro)}</td></tr>`}).join('');
+}
+function renderDashboard(){
+ const stock=devices.filter(x=>x.status==='EM ESTOQUE');$('kStock').textContent=stock.length;$('kCapital').textContent=money(stock.reduce((a,x)=>a+Number(x.valor_compra||0),0));
+ const d=today(),m=d.slice(0,7),todaySales=sales.filter(x=>(x.data_venda||String(x.criado_em).slice(0,10))===d),month=sales.filter(x=>(x.data_venda||String(x.criado_em).slice(0,10)).startsWith(m));
+ $('kToday').textContent=money(todaySales.reduce((a,x)=>a+Number(x.valor_total||0),0));$('kMonth').textContent=money(month.reduce((a,x)=>a+Number(x.valor_total||0),0));
+ $('kProfit').textContent=money(month.reduce((a,x)=>a+Number(x.valor_total||0)-Number(x.custo_total||0),0));
+}
+$('supplierForm').onsubmit=async e=>{e.preventDefault();$('fMsg').textContent='Salvando...';const {error}=await sb.from('fornecedores').insert({nome:$('fNome').value.trim(),telefone:$('fTel').value.trim()||null,cidade:$('fCidade').value.trim()||null,observacao:$('fObs').value.trim()||null});if(error){$('fMsg').textContent='❌ '+error.message;return}e.target.reset();$('fMsg').innerHTML='<span class="ok">✅ Fornecedor cadastrado.</span>';await loadSuppliers();}
+window.toggleSupplier=async(id,value)=>{await sb.from('fornecedores').update({ativo:value}).eq('id',id);await loadSuppliers();}
 
-   const payment=$('salePayment').value;
-   const sale={
-     produto_id:id,produto_nome:p.nome,quantidade:qty,preco_unitario:price,
-     valor_total:Number((qty*price).toFixed(2)),forma_pagamento:payment,
-     parcelas:payment==='CRÉDITO'?Number($('saleInstallments').value||1):1,
-     cliente:$('saleClient').value.trim()||null,cidade:$('saleCity').value.trim()||null,
-     observacao:$('saleObs').value.trim()||null
-   };
-   const ins=await sb.from('vendas').insert(sale);
-   if(ins.error){
-     // Tenta restaurar o estoque se o registro da venda falhar.
-     await sb.from('produtos').update({quantidade:stock,status:p.status,atualizado_em:new Date().toISOString()}).eq('id',id).eq('quantidade',newStock);
-     throw ins.error;
-   }
-   $('saleMsg').innerHTML='<span class="saleok">✅ Venda registrada e estoque atualizado.</span>';
-   await load();
-   setTimeout(()=>saleDlg.close(),650);
- }catch(err){$('saleMsg').textContent='❌ '+err.message}
- finally{$('confirmSale').disabled=false}
-};
+$('deviceForm').onsubmit=async e=>{e.preventDefault();$('dMsg').textContent='Salvando...';const payload={data_compra:$('dData').value,fornecedor_id:Number($('dFornecedor').value),valor_compra:Number($('dCusto').value),imei:$('dImei').value.trim(),modelo:$('dModelo').value.trim(),armazenamento:$('dArm').value.trim(),ram:$('dRam').value.trim(),status:$('dStatus').value,observacao:$('dObs').value.trim()||null,atualizado_em:new Date().toISOString()};const {error}=await sb.from('aparelhos').insert(payload);if(error){$('dMsg').textContent=error.code==='23505'?'❌ Este IMEI já está cadastrado.':'❌ '+error.message;return}e.target.reset();$('dData').value=today();$('dMsg').innerHTML='<span class="ok">✅ Aparelho cadastrado no estoque.</span>';await refreshAll();}
 
-window.del=async id=>{
- const p=items.find(x=>x.id===id);if(!confirm('Excluir '+p.nome+'?'))return;
- const {error}=await sb.from('produtos').delete().eq('id',id);if(error)alert(error.message);else load();
-};
+function updateSaleInfo(){
+ const d=devices.find(x=>x.id===Number($('vDevice').value));if(!d){$('deviceInfo').innerHTML='Selecione um aparelho para visualizar os dados.';$('vLucro').value='';return}
+ const valor=Number($('vValor').value||0),lucro=valor-Number(d.valor_compra||0);$('vLucro').value=money(lucro);
+ $('deviceInfo').innerHTML=`<b>${safe(d.modelo)}</b> • ${safe(d.armazenamento)} • ${safe(d.ram)} RAM<br>IMEI: <b>${safe(d.imei)}</b><br>Custo: ${money(d.valor_compra)} • Lucro estimado: <b>${money(lucro)}</b>`;
+}
+$('vDevice').onchange=updateSaleInfo;$('vValor').oninput=updateSaleInfo;$('vPagamento').onchange=()=>{$('vParcelas').disabled=$('vPagamento').value!=='CRÉDITO';if($('vParcelas').disabled)$('vParcelas').value='1'};
+
+$('saleForm').onsubmit=async e=>{e.preventDefault();const d=devices.find(x=>x.id===Number($('vDevice').value));if(!d)return; if(d.status!=='EM ESTOQUE'){$('vMsg').textContent='❌ Este aparelho não está disponível.';return}
+ const valor=Number($('vValor').value),custo=Number(d.valor_compra||0);$('vMsg').textContent='Registrando venda...';
+ const sale={aparelho_id:d.id,produto_nome:d.modelo,imei:d.imei,armazenamento:d.armazenamento,ram:d.ram,quantidade:1,preco_unitario:valor,valor_total:valor,custo_unitario:custo,custo_total:custo,forma_pagamento:$('vPagamento').value,parcelas:$('vPagamento').value==='CRÉDITO'?Number($('vParcelas').value):1,cliente:$('vCliente').value.trim(),cpf:$('vCpf').value.trim()||null,cidade:$('vCidade').value.trim(),estado:$('vEstado').value,telefone:$('vTelefone').value.trim(),garantia:$('vGarantia').value,data_venda:$('vData').value};
+ const upd=await sb.from('aparelhos').update({status:'VENDIDO',atualizado_em:new Date().toISOString()}).eq('id',d.id).eq('status','EM ESTOQUE').select('id');
+ if(upd.error||!upd.data?.length){$('vMsg').textContent='❌ O aparelho não está mais disponível.';return}
+ const ins=await sb.from('vendas').insert(sale);
+ if(ins.error){await sb.from('aparelhos').update({status:'EM ESTOQUE'}).eq('id',d.id).eq('status','VENDIDO');$('vMsg').textContent='❌ '+ins.error.message;return}
+ e.target.reset();$('vData').value=today();$('vMsg').innerHTML='<span class="ok">✅ Venda registrada. IMEI marcado como VENDIDO.</span>';await refreshAll();updateSaleInfo();
+}
 $('logout').onclick=async()=>{await sb.auth.signOut();location.href='index.html'};
-guard();
+init().catch(e=>{$('authMsg').textContent='❌ '+e.message});
 </script></body></html>
