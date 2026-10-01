@@ -51,7 +51,6 @@ label{display:block;color:#bbb;font-size:12px;margin-bottom:5px}.grid{display:gr
 <div class="grid">
 <div><label>Data da compra</label><input id="dData" type="date" required></div>
 <div><label>Fornecedor</label><select id="dFornecedor" required></select></div>
-<div><label>Produto da vitrine</label><select id="dProduto"></select></div>
 <div><label>Valor de compra (R$)</label><input id="dCusto" type="number" min="0" step=".01" required></div>
 <div><label>Número IMEI</label><input id="dImei" inputmode="numeric" minlength="15" maxlength="15" pattern="[0-9]{15}" required placeholder="15 dígitos"></div>
 <div><label>Modelo</label><input id="dModelo" required></div>
@@ -107,7 +106,7 @@ const ADMIN='5679fdda-515c-4e08-ad2e-61285478fe78'; const $=id=>document.getElem
 const money=n=>Number(n||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
 const safe=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const today=()=>new Date().toISOString().slice(0,10);
-let suppliers=[],products=[],devices=[],sales=[];
+let suppliers=[],devices=[],sales=[];
 
 document.querySelectorAll('.tabs button').forEach(b=>b.onclick=()=>{document.querySelectorAll('.tabs button,.tab').forEach(x=>x.classList.remove('active'));b.classList.add('active');$(b.dataset.tab).classList.add('active')});
 
@@ -117,7 +116,7 @@ async function init(){
  $('authMsg').hidden=true;$('app').hidden=false;$('dData').value=today();$('vData').value=today();
  await refreshAll();
 }
-async function refreshAll(){await Promise.all([loadSuppliers(),loadProducts(),loadDevices(),loadSales()]);renderDashboard();}
+async function refreshAll(){await Promise.all([loadSuppliers(),loadDevices(),loadSales()]);renderDashboard();}
 
 async function loadSuppliers(){
  const {data,error}=await sb.from('fornecedores').select('*').order('nome');
@@ -125,12 +124,6 @@ async function loadSuppliers(){
  $('dFornecedor').innerHTML='<option value="">Selecione...</option>'+suppliers.filter(x=>x.ativo).map(x=>`<option value="${x.id}">${safe(x.nome)}</option>`).join('');
  $('supplierRows').innerHTML=suppliers.map(x=>`<tr><td>${safe(x.nome)}</td><td>${safe(x.telefone||'-')}</td><td>${safe(x.cidade||'-')}</td><td>${x.ativo?'ATIVO':'INATIVO'}</td><td><button class="secondary" onclick="toggleSupplier(${x.id},${!x.ativo})">${x.ativo?'Desativar':'Ativar'}</button></td></tr>`).join('');
 }
-async function loadProducts(){
- const {data,error}=await sb.from('produtos').select('id,nome,marca,armazenamento,ram,ativo').order('marca').order('nome');
- if(error) throw error; products=data||[];
- $('dProduto').innerHTML='<option value="">Não vincular agora</option>'+products.filter(x=>x.ativo).map(x=>`<option value="${x.id}">${safe(x.marca)} • ${safe(x.nome)} • ${safe(x.armazenamento)} / ${safe(x.ram)}</option>`).join('');
-}
-
 async function loadDevices(){
  const {data,error}=await sb.from('aparelhos').select('*,fornecedores(nome),produtos(id,nome,marca,armazenamento,ram)').order('criado_em',{ascending:false});
  if(error) throw error; devices=data||[];
@@ -156,13 +149,7 @@ $('dImei').oninput=()=>{
  $('dImei').value=$('dImei').value.replace(/\D/g,'').slice(0,15);
 };
 
-$('dProduto').onchange=()=>{
- const p=products.find(x=>x.id===Number($('dProduto').value));
- if(!p)return;
- $('dModelo').value=p.nome||'';
- $('dArm').value=p.armazenamento||'';
- $('dRam').value=p.ram||'';
-};
+
 
 $('deviceForm').onsubmit=async e=>{e.preventDefault();
  const imei=$('dImei').value.trim();
@@ -171,7 +158,7 @@ $('deviceForm').onsubmit=async e=>{e.preventDefault();
    $('dImei').focus();
    return;
  }
- $('dMsg').textContent='Salvando...';const payload={data_compra:$('dData').value,fornecedor_id:Number($('dFornecedor').value),produto_id:$('dProduto').value ? Number($('dProduto').value) : null,valor_compra:Number($('dCusto').value),imei:imei,modelo:$('dModelo').value.trim(),armazenamento:$('dArm').value.trim(),ram:$('dRam').value.trim(),cor:$('dCor').value.trim(),status:$('dStatus').value,observacao:$('dObs').value.trim()||null,atualizado_em:new Date().toISOString()};const {error}=await sb.from('aparelhos').insert(payload);if(error){$('dMsg').textContent=error.code==='23505'?'❌ Este IMEI já está cadastrado.':'❌ '+error.message;return}e.target.reset();$('dData').value=today();$('dMsg').innerHTML='<span class="ok">✅ Aparelho cadastrado no estoque.</span>';await refreshAll();}
+ $('dMsg').textContent='Salvando...';const payload={data_compra:$('dData').value,fornecedor_id:Number($('dFornecedor').value),valor_compra:Number($('dCusto').value),imei:imei,modelo:$('dModelo').value.trim(),armazenamento:$('dArm').value.trim(),ram:$('dRam').value.trim(),cor:$('dCor').value.trim(),status:$('dStatus').value,observacao:$('dObs').value.trim()||null,atualizado_em:new Date().toISOString()};const {error}=await sb.from('aparelhos').insert(payload);if(error){$('dMsg').textContent=error.code==='23505'?'❌ Este IMEI já está cadastrado.':'❌ '+error.message;return}e.target.reset();$('dData').value=today();$('dMsg').innerHTML='<span class="ok">✅ Aparelho cadastrado no estoque.</span>';await refreshAll();}
 
 function updateSaleInfo(){
  const d=devices.find(x=>x.id===Number($('vDevice').value));if(!d){$('deviceInfo').innerHTML='Selecione um aparelho para visualizar os dados.';$('vLucro').value='';return}
