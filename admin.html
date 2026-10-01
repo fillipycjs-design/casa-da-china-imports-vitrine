@@ -4,6 +4,7 @@
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Admin • Casa da China Imports</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js"></script>
 <style>
 *{box-sizing:border-box}body{margin:0;background:#080808;color:#f5f5f5;font-family:Arial,sans-serif}
 header{position:sticky;top:0;z-index:5;background:#0d0d0df2;border-bottom:1px solid #252525;padding:14px 18px;display:flex;justify-content:space-between;align-items:center}
@@ -94,7 +95,7 @@ label{display:block;color:#bbb;font-size:12px;margin-bottom:5px}.grid{display:gr
 </section>
 
 <section id="historico" class="tab">
-<div class="card"><h2>🧾 Histórico de vendas</h2><div class="scroll"><table><thead><tr><th>Data</th><th>Cliente</th><th>CPF</th><th>Cidade/UF</th><th>Telefone</th><th>Modelo</th><th>Memória</th><th>IMEI</th><th>Venda</th><th>Garantia</th><th>Lucro</th></tr></thead><tbody id="saleRows"></tbody></table></div></div>
+<div class="card"><h2>🧾 Histórico de vendas</h2><div class="scroll"><table><thead><tr><th>Recibo</th><th>Data</th><th>Cliente</th><th>CPF</th><th>Cidade/UF</th><th>Telefone</th><th>Modelo</th><th>Memória</th><th>IMEI</th><th>Venda</th><th>Garantia</th><th>Lucro</th><th>Recibo</th></tr></thead><tbody id="saleRows"></tbody></table></div></div>
 </section>
 </div>
 </main>
@@ -132,7 +133,7 @@ async function loadDevices(){
 async function loadSales(){
  const {data,error}=await sb.from('vendas').select('*').order('criado_em',{ascending:false}).limit(1000);
  if(error) throw error; sales=data||[];
- $('saleRows').innerHTML=sales.map(v=>{const lucro=Number(v.valor_total||0)-Number(v.custo_total||0);return `<tr><td>${safe(v.data_venda||String(v.criado_em||'').slice(0,10))}</td><td>${safe(v.cliente||'-')}</td><td>${safe(v.cpf||'-')}</td><td>${safe(v.cidade||'-')}/${safe(v.estado||'-')}</td><td>${safe(v.telefone||'-')}</td><td>${safe(v.produto_nome||'-')}</td><td>${safe(v.armazenamento||'-')} / ${safe(v.ram||'-')}</td><td>${safe(v.imei||'-')}</td><td>${money(v.valor_total)}</td><td>${safe(v.garantia||'-')}</td><td>${money(lucro)}</td></tr>`}).join('');
+ $('saleRows').innerHTML=sales.map(v=>{const lucro=Number(v.valor_total||0)-Number(v.custo_total||0);const vd=v.data_venda||String(v.criado_em||'').slice(0,10);const rn=`CDC-${String(vd).slice(0,4)}-${String(v.id).padStart(6,'0')}`;return `<tr><td><b>${rn}</b></td><td>${safe(vd)}</td><td>${safe(v.cliente||'-')}</td><td>${safe(v.cpf||'-')}</td><td>${safe(v.cidade||'-')}/${safe(v.estado||'-')}</td><td>${safe(v.telefone||'-')}</td><td>${safe(v.produto_nome||'-')}</td><td>${safe(v.armazenamento||'-')} / ${safe(v.ram||'-')}</td><td>${safe(v.imei||'-')}</td><td>${money(v.valor_total)}</td><td>${safe(v.garantia||'-')}</td><td>${money(lucro)}</td><td><button class="primary" onclick="gerarRecibo(${v.id})">📄 PDF</button></td></tr>`}).join('');
 }
 function renderDashboard(){
  const stock=devices.filter(x=>x.status==='EM ESTOQUE');$('kStock').textContent=stock.length;$('kCapital').textContent=money(stock.reduce((a,x)=>a+Number(x.valor_compra||0),0));
@@ -161,6 +162,84 @@ $('saleForm').onsubmit=async e=>{e.preventDefault();const d=devices.find(x=>x.id
  if(ins.error){await sb.from('aparelhos').update({status:'EM ESTOQUE'}).eq('id',d.id).eq('status','VENDIDO');$('vMsg').textContent='❌ '+ins.error.message;return}
  e.target.reset();$('vData').value=today();$('vMsg').innerHTML='<span class="ok">✅ Venda registrada. IMEI marcado como VENDIDO.</span>';await refreshAll();updateSaleInfo();
 }
+
+window.gerarRecibo = async function(id){
+ const v=sales.find(x=>x.id===id);
+ if(!v){alert('Venda não encontrada.');return}
+ const {jsPDF}=window.jspdf;
+ const doc=new jsPDF({unit:'mm',format:'a4'});
+ const left=18, right=192;
+ const fmtDate=s=>{
+   if(!s)return '-';
+   const p=String(s).slice(0,10).split('-');
+   return p.length===3?`${p[2]}/${p[1]}/${p[0]}`:s;
+ };
+ const addMonths=(dateStr,months)=>{
+   const d=new Date(String(dateStr).slice(0,10)+'T12:00:00');
+   d.setMonth(d.getMonth()+months);
+   return d.toLocaleDateString('pt-BR');
+ };
+ const dataVenda=v.data_venda||String(v.criado_em||'').slice(0,10);
+ const ano=String(dataVenda||'').slice(0,4)||new Date().getFullYear();
+ const recibo=`CDC-${ano}-${String(v.id).padStart(6,'0')}`;
+ const garantia1=String(v.garantia||'').toUpperCase().includes('1 ANO');
+ const validade=addMonths(dataVenda,garantia1?12:3);
+
+ doc.setFont('helvetica','bold');doc.setFontSize(18);
+ doc.text('CASA DA CHINA IMPORTS',105,20,{align:'center'});
+ doc.setFontSize(10);doc.setFont('helvetica','normal');
+ doc.text('Tecnologia com confiança • Loja física desde 2018',105,27,{align:'center'});
+ doc.text('WhatsApp: (81) 99723-2006 • @casadachinaoficial',105,32,{align:'center'});
+ doc.setDrawColor(40);doc.line(left,37,right,37);
+
+ doc.setFont('helvetica','bold');doc.setFontSize(14);
+ doc.text('RECIBO DE VENDA E TERMO DE GARANTIA',105,47,{align:'center'});
+ doc.setFontSize(10);doc.text(`Nº ${recibo}`,105,53,{align:'center'});
+ doc.setFontSize(10);doc.setFont('helvetica','normal');
+
+ let y=63;
+ const line=(label,value)=>{
+   doc.setFont('helvetica','bold');doc.text(label,left,y);
+   doc.setFont('helvetica','normal');doc.text(String(value||'-'),58,y);
+   y+=7;
+ };
+ line('Data da venda:',fmtDate(dataVenda));
+ line('Cliente:',v.cliente);
+ line('CPF:',v.cpf||'-');
+ line('Telefone:',v.telefone||'-');
+ line('Cidade/Estado:',`${v.cidade||'-'} / ${v.estado||'-'}`);
+ y+=2; doc.line(left,y-4,right,y-4);
+ line('Modelo:',v.produto_nome);
+ line('Armazenamento:',v.armazenamento||'-');
+ line('Memória RAM:',v.ram||'-');
+ line('IMEI:',v.imei||'-');
+ line('Valor da venda:',money(v.valor_total));
+ line('Pagamento:',`${v.forma_pagamento||'-'}${v.forma_pagamento==='CRÉDITO'&&Number(v.parcelas)>1?' • '+v.parcelas+'x':''}`);
+
+ y+=5;doc.setFont('helvetica','bold');doc.setFontSize(12);
+ doc.text('GARANTIA SELECIONADA',left,y);y+=9;
+ doc.setFontSize(11);
+ doc.text(`${garantia1?'☐':'☒'} 3 MESES DE GARANTIA PELA LOJA`,left,y);y+=8;
+ doc.text(`${garantia1?'☒':'☐'} 1 ANO DE GARANTIA PELO FABRICANTE`,left,y);y+=9;
+ doc.setFontSize(10);doc.setFont('helvetica','normal');
+ doc.text(`Garantia válida até: ${validade}`,left,y);y+=12;
+
+ doc.setFont('helvetica','bold');doc.text('CONDIÇÕES',left,y);y+=7;
+ doc.setFont('helvetica','normal');
+ const terms = garantia1
+ ? 'A garantia indicada é de responsabilidade do fabricante e está sujeita aos termos, procedimentos e cobertura definidos pelo fabricante. Este documento comprova os dados da venda realizada pela Casa da China Imports.'
+ : 'A garantia indicada é prestada pela Casa da China Imports pelo período informado, observadas as condições aplicáveis ao produto e à venda. Este documento comprova os dados da venda e o prazo registrado no sistema.';
+ const lines=doc.splitTextToSize(terms,174);doc.text(lines,left,y);y+=lines.length*5+8;
+
+ doc.setDrawColor(60);doc.line(left,y,right,y);y+=8;
+ doc.setFontSize(9);
+ doc.text('Documento gerado eletronicamente a partir do registro da venda. Não necessita de assinatura do cliente.',105,y,{align:'center'});
+ doc.text('Casa da China Imports',105,y+6,{align:'center'});
+
+ const filename=`${recibo}-garantia-${String(v.produto_nome||'aparelho').replace(/[^a-z0-9]+/gi,'-')}.pdf`;
+ doc.save(filename);
+};
+
 $('logout').onclick=async()=>{await sb.auth.signOut();location.href='index.html'};
 init().catch(e=>{$('authMsg').textContent='❌ '+e.message});
 </script></body></html>
