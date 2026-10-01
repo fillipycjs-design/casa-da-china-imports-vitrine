@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Casa da China Imports | Vitrine</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{--bg:#080808;--card:#131313;--red:#e50914;--text:#fff;--muted:#aaa;--line:#2a2a2a;--green:#22c55e}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:Arial,sans-serif}
+header{position:sticky;top:0;z-index:10;background:#090909ee;border-bottom:1px solid var(--line);padding:15px}
+.wrap{max-width:1180px;margin:auto}.top{display:flex;align-items:center;gap:14px;justify-content:space-between;flex-wrap:wrap}
+.brand{font-weight:900;font-size:22px}.brand span{color:var(--red)}button,.btn{border:0;border-radius:10px;padding:11px 15px;font-weight:800;cursor:pointer}
+.primary{background:var(--red);color:#fff}.secondary{background:#222;color:#fff;border:1px solid #333}
+.controls{display:flex;gap:8px;flex-wrap:wrap;margin:18px 0}.controls input,.controls select,.form input,.form select{background:#151515;border:1px solid #333;color:white;border-radius:9px;padding:11px}
+.controls input{flex:1;min-width:220px}.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(245px,1fr));gap:16px;padding-bottom:40px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;overflow:hidden;position:relative}
+.pic{height:220px;background:#fff;display:flex;align-items:center;justify-content:center}.pic img{width:100%;height:100%;object-fit:contain}
+.noimg{color:#777;text-align:center;padding:20px}.body{padding:15px}.brandtag{font-size:12px;color:#bbb;text-transform:uppercase}.name{font-size:19px;font-weight:900;margin:5px 0 12px}
+.specs{display:flex;gap:7px;flex-wrap:wrap}.spec{background:#202020;border:1px solid #303030;border-radius:7px;padding:6px 8px;font-size:12px}
+.pricepix{font-size:22px;font-weight:900;color:#fff;margin-top:15px}.pix{color:var(--green);font-size:12px}
+.pix-saving{display:inline-block;margin:7px 0 3px;background:#12351f;border:1px solid #246b3a;color:#7ee2a0;border-radius:8px;padding:6px 9px;font-size:12px;font-weight:900}.cardprice{color:#bbb;margin:4px 0 4px}
+.installment-main{font-size:16px;font-weight:900;color:#fff;margin:0 0 9px}
+.installment-main strong{color:#fff}
+.installment-btn{width:100%;background:#242424;color:#fff;border:1px solid #3a3a3a;margin-bottom:9px}
+.installment-btn:hover{background:#303030}
+.installments-list{display:grid;gap:7px;margin:14px 0}
+.installment-row{display:flex;justify-content:space-between;gap:16px;padding:9px 0;border-bottom:1px solid #292929}
+.installment-row:last-child{border-bottom:0}
+.installment-row.highlight{font-weight:900;color:#fff}
+.wa{display:block;text-decoration:none;text-align:center;background:#20b65a;color:white;border-radius:9px;padding:11px;font-weight:900}
+.badge{position:absolute;top:10px;left:10px;z-index:2;padding:6px 9px;border-radius:8px;background:var(--red);font-size:11px;font-weight:900}
+.empty{grid-column:1/-1;text-align:center;color:#aaa;padding:50px}.foot{color:#888;text-align:center;padding:25px;border-top:1px solid #222}
+dialog{background:#101010;color:white;border:1px solid #333;border-radius:15px;width:min(430px,94vw)}
+.form{display:grid;gap:10px}.form input,.form select{width:100%}.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}.actions{display:flex;justify-content:flex-end;gap:8px;margin-top:8px}
+small{color:#999}
+</style>
+</head>
+<body>
+<header><div class="wrap top">
+<div><div class="brand">CASA DA CHINA <span>IMPORTS</span></div><small>Tecnologia com confiança • Loja física desde 2018</small></div>
+<button class="secondary" id="adminBtn">🔐 Administrar</button>
+</div></header>
+<main class="wrap">
+<div class="controls">
+<input id="q" placeholder="Buscar modelo...">
+<select id="marca"><option value="">Todas as marcas</option><option>XIAOMI</option><option>POCO</option><option>REALME</option></select>
+<select id="categoria"><option value="">Todas as categorias</option><option>SMARTPHONE</option><option>TABLET</option></select>
+</div>
+<div id="grid" class="grid"><div class="empty">Carregando produtos...</div></div>
+</main>
+<div class="foot">Novos e lacrados • Até 12x sem juros • Delivery para outras cidades<br>@casadachinaoficial • WhatsApp (81) 99723-2006</div>
+
+<dialog id="parcelasDlg">
+<div>
+<h2 id="parcelasTitle">Parcelamento</h2>
+<small>Valores calculados sobre o preço total no cartão, sem juros.</small>
+<div id="parcelasList" class="installments-list"></div>
+<div class="actions"><button type="button" class="secondary" onclick="parcelasDlg.close()">Fechar</button></div>
+</div>
+</dialog>
+
+<dialog id="loginDlg">
+<form class="form" id="loginForm">
+<h2>Área administrativa</h2>
+<small>Use o e-mail e a senha cadastrados no Supabase.</small>
+<input id="email" type="email" placeholder="E-mail" required>
+<input id="password" type="password" placeholder="Senha" required>
+<div id="loginMsg"></div>
+<div class="actions"><button type="button" class="secondary" onclick="loginDlg.close()">Cancelar</button><button class="primary">Entrar</button></div>
+</form>
+</dialog>
+
+<script>
+const SUPABASE_URL='https://tkrexoazcadbyezdwwkn.supabase.co';
+const SUPABASE_KEY='sb_publishable_XL9bwwKoLCRvGegqaqoedw_38BW1phc';
+const sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+const grid=document.getElementById('grid'), q=document.getElementById('q'), marca=document.getElementById('marca'), categoria=document.getElementById('categoria');
+let products=[];
+
+function money(v){return Number(v||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'})}
+function safe(s){return String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
+function render(){
+ const term=q.value.toLowerCase().trim(), m=marca.value, c=categoria.value;
+ const list=products.filter(p=>(!term||(p.nome||'').toLowerCase().includes(term))&&(!m||p.marca===m)&&(!c||p.categoria===c));
+ if(!list.length){grid.innerHTML='<div class="empty">Nenhum produto encontrado.</div>';return}
+ grid.innerHTML=list.map(p=>`<article class="card">
+ ${p.status&&p.status!=='NORMAL'?`<div class="badge">${safe(p.status)}</div>`:''}
+ <div class="pic">${p.imagem_url?`<img src="${safe(p.imagem_url)}" alt="${safe(p.nome)}" onerror="this.outerHTML='<div class=noimg>Imagem indisponível</div>'">`:'<div class="noimg">Foto em breve</div>'}</div>
+ <div class="body"><div class="brandtag">${safe(p.marca)}</div><div class="name">${safe(p.nome)}</div>
+ <div class="specs"><span class="spec">💾 ${safe(p.armazenamento)}</span><span class="spec">⚡ ${safe(p.ram)} RAM</span>${p.rede?`<span class="spec">📶 ${safe(p.rede)}</span>`:''}</div>
+ <div class="pricepix"><span class="pix">PIX</span> ${money(p.preco_pix)}</div>
+ ${Number(p.preco_cartao)>Number(p.preco_pix)?`<div class="pix-saving">💰 Economize ${money(Number(p.preco_cartao)-Number(p.preco_pix))} no Pix</div>`:''}
+ <div class="cardprice">💳 ${money(p.preco_cartao)} no cartão</div>
+ <div class="installment-main">12x de <strong>${money(Number(p.preco_cartao)/12)}</strong> sem juros</div>
+ <button class="installment-btn" onclick="showInstallments(${Number(p.preco_cartao)}, '${safe(p.nome).replace(/'/g,"&#39;")}')">Ver todas as parcelas</button>
+ <a class="wa" target="_blank" href="https://wa.me/5581997232006?text=${encodeURIComponent('Olá! Tenho interesse no '+p.nome+' '+p.armazenamento+' / '+p.ram+' RAM.')}">Chamar no WhatsApp</a></div></article>`).join('');
+}
+function showInstallments(total,nome){
+ document.getElementById('parcelasTitle').textContent='Parcelamento • '+nome;
+ const list=document.getElementById('parcelasList');
+ list.innerHTML=Array.from({length:12},(_,i)=>{
+   const n=i+1, value=Number(total)/n;
+   return `<div class="installment-row ${n===12?'highlight':''}"><span>${n}x sem juros</span><span>${money(value)}</span></div>`;
+ }).join('');
+ parcelasDlg.showModal();
+}
+async function load(){
+ const {data,error}=await sb.from('produtos').select('*').eq('ativo',true).order('ordem',{ascending:true}).order('id',{ascending:false});
+ if(error){grid.innerHTML='<div class="empty">Não foi possível carregar a vitrine.<br>'+safe(error.message)+'</div>';return}
+ products=data||[];render();
+}
+[q,marca,categoria].forEach(e=>e.addEventListener(e.tagName==='INPUT'?'input':'change',render));
+document.getElementById('adminBtn').onclick=async()=>{
+ const {data:{session}}=await sb.auth.getSession();
+ if(session){location.href='admin.html'}else loginDlg.showModal();
+};
+document.getElementById('loginForm').onsubmit=async e=>{
+ e.preventDefault();loginMsg.textContent='Entrando...';
+ const {data,error}=await sb.auth.signInWithPassword({email:email.value,password:password.value});
+ if(error){loginMsg.textContent='❌ '+error.message;return}
+ if(data.user.id!=='5679fdda-515c-4e08-ad2e-61285478fe78'){await sb.auth.signOut();loginMsg.textContent='❌ Este usuário não é o administrador autorizado.';return}
+ location.href='admin.html';
+};
+load();
+</script>
+</body></html>

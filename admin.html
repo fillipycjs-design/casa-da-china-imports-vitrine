@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Admin | Casa da China Imports</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{--bg:#080808;--card:#141414;--red:#e50914;--line:#303030;--muted:#aaa}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:white;font-family:Arial,sans-serif}.wrap{max-width:1180px;margin:auto;padding:18px}
+header{border-bottom:1px solid var(--line);background:#0b0b0b}.top{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+h1{font-size:22px}.red{color:var(--red)}button{border:0;border-radius:9px;padding:10px 13px;font-weight:800;cursor:pointer}.primary{background:var(--red);color:white}.secondary{background:#222;color:white;border:1px solid #333}.danger{background:#591014;color:white}
+.toolbar{display:flex;gap:8px;margin:18px 0;flex-wrap:wrap}.toolbar input{flex:1;min-width:220px}
+input,select{background:#151515;border:1px solid #333;color:white;border-radius:8px;padding:10px;width:100%}
+table{width:100%;border-collapse:collapse;background:#111}th,td{padding:10px;border-bottom:1px solid #292929;text-align:left;font-size:13px}th{color:#aaa}.thumb{width:55px;height:55px;object-fit:contain;background:white;border-radius:7px}.tablewrap{overflow:auto;border:1px solid #292929;border-radius:12px}
+dialog{width:min(650px,95vw);background:#111;color:white;border:1px solid #333;border-radius:15px}.form{display:grid;gap:11px}.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}.row3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.actions{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}.preview{height:180px;background:white;border-radius:10px;display:flex;align-items:center;justify-content:center;overflow:hidden}.preview img{width:100%;height:100%;object-fit:contain}.msg{padding:10px;border-radius:8px;background:#1a1a1a;color:#ccc}.status{font-size:12px;color:#aaa}@media(max-width:650px){.row,.row3{grid-template-columns:1fr}th:nth-child(3),td:nth-child(3){display:none}}
+</style></head><body>
+<header><div class="wrap top"><h1>CASA DA CHINA <span class="red">IMPORTS</span> — Admin</h1><div><button class="secondary" onclick="location.href='index.html'">Ver vitrine</button> <button class="danger" id="logout">Sair</button></div></div></header>
+<main class="wrap">
+<div id="authStatus" class="msg">Validando acesso...</div>
+<div id="panel" hidden>
+<div class="toolbar"><input id="search" placeholder="Buscar produto..."><button class="primary" id="newBtn">+ Novo produto</button></div>
+<div class="tablewrap"><table><thead><tr><th>Foto</th><th>Produto</th><th>Especificação</th><th>Pix</th><th>Cartão</th><th>Status</th><th>Ações</th></tr></thead><tbody id="tbody"></tbody></table></div>
+</div></main>
+
+<dialog id="dlg"><form class="form" id="form">
+<h2 id="formTitle">Novo produto</h2><input type="hidden" id="pid">
+<div class="row"><div><label>Nome/modelo</label><input id="nome" required placeholder="POCO X8 Pro"></div><div><label>Marca</label><select id="marca" required><option>XIAOMI</option><option>POCO</option><option>REALME</option></select></div></div>
+<div class="row3"><div><label>Categoria</label><select id="categoria"><option>SMARTPHONE</option><option>TABLET</option></select></div><div><label>Armazenamento</label><input id="armazenamento" required placeholder="256GB"></div><div><label>RAM</label><input id="ram" required placeholder="8GB"></div></div>
+<div class="row3"><div><label>Rede</label><input id="rede" placeholder="5G NFC"></div><div><label>Pix (R$)</label><input id="pix" type="number" step=".01" required></div><div><label>Cartão (R$)</label><input id="cartao" type="number" step=".01" required></div></div>
+<div class="row3"><div><label>Status</label><select id="status"><option>NORMAL</option><option>OFERTA</option><option>LANÇAMENTO</option><option>ESGOTADO</option></select></div><div><label>Ordem</label><input id="ordem" type="number" value="0"></div><div><label>Visível</label><select id="ativo"><option value="true">Sim</option><option value="false">Não</option></select></div></div>
+<div><label>Foto do produto</label><input id="foto" type="file" accept="image/png,image/jpeg,image/webp"></div>
+<div class="preview" id="preview"><span style="color:#777">Sem imagem</span></div>
+<div id="formMsg" class="status"></div>
+<div class="actions"><button type="button" class="secondary" onclick="dlg.close()">Cancelar</button><button class="primary" id="saveBtn">Salvar produto</button></div>
+</form></dialog>
+
+<script>
+const SUPABASE_URL='https://tkrexoazcadbyezdwwkn.supabase.co', KEY='sb_publishable_XL9bwwKoLCRvGegqaqoedw_38BW1phc', ADMIN_UID='5679fdda-515c-4e08-ad2e-61285478fe78';
+const sb=supabase.createClient(SUPABASE_URL,KEY); let items=[], currentImage=null;
+const $=id=>document.getElementById(id);
+function money(v){return Number(v||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'})}
+function safe(s){return String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
+function slug(s){return s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')}
+async function guard(){
+ const {data:{user}}=await sb.auth.getUser();
+ if(!user||user.id!==ADMIN_UID){location.href='index.html';return}
+ $('authStatus').textContent='🔐 Acesso autorizado';$('panel').hidden=false;load();
+}
+async function load(){
+ const {data,error}=await sb.from('produtos').select('*').order('ordem').order('id',{ascending:false});
+ if(error){$('authStatus').textContent='❌ '+error.message;return} items=data||[];render();
+}
+function render(){
+ const t=$('search').value.toLowerCase();
+ const a=items.filter(p=>(p.nome||'').toLowerCase().includes(t));
+ $('tbody').innerHTML=a.map(p=>`<tr><td>${p.imagem_url?`<img class="thumb" src="${safe(p.imagem_url)}">`:'—'}</td><td><b>${safe(p.nome)}</b><br><span class=status>${safe(p.marca)}</span></td><td>${safe(p.armazenamento)} / ${safe(p.ram)} RAM<br>${safe(p.rede||'')}</td><td>${money(p.preco_pix)}</td><td>${money(p.preco_cartao)}</td><td>${safe(p.status)}</td><td><button class="secondary" onclick="edit(${p.id})">Editar</button> <button class="danger" onclick="del(${p.id})">Excluir</button></td></tr>`).join('');
+}
+$('search').oninput=render;
+$('newBtn').onclick=()=>{form.reset();$('pid').value='';$('ordem').value=0;currentImage=null;$('preview').innerHTML='<span style="color:#777">Sem imagem</span>';$('formTitle').textContent='Novo produto';$('formMsg').textContent='';dlg.showModal()};
+window.edit=id=>{const p=items.find(x=>x.id===id); if(!p)return;$('pid').value=p.id;$('nome').value=p.nome;$('marca').value=p.marca;$('categoria').value=p.categoria;$('armazenamento').value=p.armazenamento;$('ram').value=p.ram;$('rede').value=p.rede||'';$('pix').value=p.preco_pix;$('cartao').value=p.preco_cartao;$('status').value=p.status||'NORMAL';$('ordem').value=p.ordem||0;$('ativo').value=String(p.ativo);currentImage=p.imagem_url||null;$('preview').innerHTML=currentImage?`<img src="${safe(currentImage)}">`:'<span style="color:#777">Sem imagem</span>';$('formTitle').textContent='Editar produto';$('formMsg').textContent='';dlg.showModal()};
+$('foto').onchange=e=>{const f=e.target.files[0];if(f){$('preview').innerHTML=`<img src="${window.URL.createObjectURL(f)}">`}};
+async function findReusableImage(name){
+ const normalized=name.trim().toLowerCase();
+ const p=items.find(x=>(x.nome||'').trim().toLowerCase()===normalized && x.imagem_url);
+ return p?.imagem_url||null;
+}
+async function upload(file,name){
+ const ext=(file.name.split('.').pop()||'webp').toLowerCase();
+ const path=`modelos/${slug(name)}-${Date.now()}.${ext}`;
+ const {error}=await sb.storage.from('fotos-produtos').upload(path,file,{cacheControl:'3600',upsert:false});
+ if(error)throw error;
+ return sb.storage.from('fotos-produtos').getPublicUrl(path).data.publicUrl;
+}
+$('form').onsubmit=async e=>{
+ e.preventDefault();$('saveBtn').disabled=true;$('formMsg').textContent='Salvando...';
+ try{
+   let img=currentImage; const file=$('foto').files[0];
+   if(file) img=await upload(file,$('nome').value);
+   if(!img) img=await findReusableImage($('nome').value);
+   const data={nome:$('nome').value.trim(),marca:$('marca').value,categoria:$('categoria').value,armazenamento:$('armazenamento').value.trim(),ram:$('ram').value.trim(),rede:$('rede').value.trim(),preco_pix:Number($('pix').value),preco_cartao:Number($('cartao').value),status:$('status').value,ordem:Number($('ordem').value||0),ativo:$('ativo').value==='true',imagem_url:img,atualizado_em:new Date().toISOString()};
+   const id=$('pid').value;
+   const res=id?await sb.from('produtos').update(data).eq('id',id):await sb.from('produtos').insert(data);
+   if(res.error)throw res.error;
+   dlg.close();await load();
+ }catch(err){$('formMsg').textContent='❌ '+err.message}
+ finally{$('saveBtn').disabled=false}
+};
+window.del=async id=>{
+ const p=items.find(x=>x.id===id);if(!confirm('Excluir '+p.nome+'?'))return;
+ const {error}=await sb.from('produtos').delete().eq('id',id);if(error)alert(error.message);else load();
+};
+$('logout').onclick=async()=>{await sb.auth.signOut();location.href='index.html'};
+guard();
+</script></body></html>
