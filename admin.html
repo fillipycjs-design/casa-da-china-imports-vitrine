@@ -51,18 +51,19 @@ label{display:block;color:#bbb;font-size:12px;margin-bottom:5px}.grid{display:gr
 <div class="grid">
 <div><label>Data da compra</label><input id="dData" type="date" required></div>
 <div><label>Fornecedor</label><select id="dFornecedor" required></select></div>
-<div><label>Produto da vitrine</label><select id="dProduto" required></select></div>
+<div><label>Produto da vitrine</label><select id="dProduto"></select></div>
 <div><label>Valor de compra (R$)</label><input id="dCusto" type="number" min="0" step=".01" required></div>
-<div><label>Número IMEI</label><input id="dImei" inputmode="numeric" maxlength="20" required placeholder="Digite ou leia o IMEI"></div>
+<div><label>Número IMEI</label><input id="dImei" inputmode="numeric" minlength="15" maxlength="15" pattern="[0-9]{15}" required placeholder="15 dígitos"></div>
 <div><label>Modelo</label><input id="dModelo" required></div>
 <div><label>Armazenamento</label><input id="dArm" required placeholder="Ex.: 256GB"></div>
 <div><label>Memória RAM</label><input id="dRam" required placeholder="Ex.: 8GB"></div>
+<div><label>Cor</label><input id="dCor" required placeholder="Ex.: Preto, Azul, Verde"></div>
 <div><label>Status</label><select id="dStatus"><option>EM ESTOQUE</option><option>RESERVADO</option><option>TROCA</option><option>DEFEITO</option></select></div>
 </div>
 <div><label>Observação</label><input id="dObs"></div>
 <div class="actions"><button class="primary">Salvar aparelho</button></div><div id="dMsg" class="msg"></div>
 </form></div>
-<div class="card"><h2>Estoque individual</h2><div class="scroll"><table><thead><tr><th>Data</th><th>Fornecedor</th><th>Produto da vitrine</th><th>IMEI</th><th>Modelo</th><th>Memória</th><th>Custo</th><th>Status</th></tr></thead><tbody id="deviceRows"></tbody></table></div></div>
+<div class="card"><h2>Estoque individual</h2><div class="scroll"><table><thead><tr><th>Data</th><th>Fornecedor</th><th>Produto da vitrine</th><th>IMEI</th><th>Modelo</th><th>Cor</th><th>Memória</th><th>Custo</th><th>Status</th></tr></thead><tbody id="deviceRows"></tbody></table></div></div>
 </section>
 
 <section id="venda" class="tab">
@@ -96,7 +97,7 @@ label{display:block;color:#bbb;font-size:12px;margin-bottom:5px}.grid{display:gr
 </section>
 
 <section id="historico" class="tab">
-<div class="card"><h2>🧾 Histórico de vendas</h2><div class="scroll"><table><thead><tr><th>Recibo</th><th>Data</th><th>Cliente</th><th>CPF</th><th>Cidade/UF</th><th>Telefone</th><th>Modelo</th><th>Memória</th><th>IMEI</th><th>Venda</th><th>Garantia</th><th>Lucro</th><th>Recibo</th></tr></thead><tbody id="saleRows"></tbody></table></div></div>
+<div class="card"><h2>🧾 Histórico de vendas</h2><div class="scroll"><table><thead><tr><th>Recibo</th><th>Data</th><th>Cliente</th><th>CPF</th><th>Cidade/UF</th><th>Telefone</th><th>Modelo</th><th>Cor</th><th>Memória</th><th>IMEI</th><th>Venda</th><th>Garantia</th><th>Lucro</th><th>Recibo</th></tr></thead><tbody id="saleRows"></tbody></table></div></div>
 </section>
 </div>
 </main>
@@ -127,20 +128,20 @@ async function loadSuppliers(){
 async function loadProducts(){
  const {data,error}=await sb.from('produtos').select('id,nome,marca,armazenamento,ram,ativo').order('marca').order('nome');
  if(error) throw error; products=data||[];
- $('dProduto').innerHTML='<option value="">Selecione o produto...</option>'+products.filter(x=>x.ativo).map(x=>`<option value="${x.id}">${safe(x.marca)} • ${safe(x.nome)} • ${safe(x.armazenamento)} / ${safe(x.ram)}</option>`).join('');
+ $('dProduto').innerHTML='<option value="">Não vincular agora</option>'+products.filter(x=>x.ativo).map(x=>`<option value="${x.id}">${safe(x.marca)} • ${safe(x.nome)} • ${safe(x.armazenamento)} / ${safe(x.ram)}</option>`).join('');
 }
 
 async function loadDevices(){
  const {data,error}=await sb.from('aparelhos').select('*,fornecedores(nome),produtos(id,nome,marca,armazenamento,ram)').order('criado_em',{ascending:false});
  if(error) throw error; devices=data||[];
- $('deviceRows').innerHTML=devices.map(x=>`<tr><td>${safe(x.data_compra)}</td><td>${safe(x.fornecedores?.nome||'-')}</td><td>${safe(x.produtos?.nome||'Não vinculado')}</td><td>${safe(x.imei)}</td><td>${safe(x.modelo)}</td><td>${safe(x.armazenamento)} / ${safe(x.ram)}</td><td>${money(x.valor_compra)}</td><td class="stock">${safe(x.status)}</td></tr>`).join('');
+ $('deviceRows').innerHTML=devices.map(x=>`<tr><td>${safe(x.data_compra)}</td><td>${safe(x.fornecedores?.nome||'-')}</td><td>${safe(x.produtos?.nome||'Não vinculado')}</td><td>${safe(x.imei)}</td><td>${safe(x.modelo)}</td><td>${safe(x.cor||'-')}</td><td>${safe(x.armazenamento)} / ${safe(x.ram)}</td><td>${money(x.valor_compra)}</td><td class="stock">${safe(x.status)}</td></tr>`).join('');
  const available=devices.filter(x=>x.status==='EM ESTOQUE');
  $('vDevice').innerHTML='<option value="">Selecione o aparelho...</option>'+available.map(x=>`<option value="${x.id}">${safe(x.modelo)} • ${safe(x.armazenamento)}/${safe(x.ram)} • IMEI ${safe(x.imei)}</option>`).join('');
 }
 async function loadSales(){
  const {data,error}=await sb.from('vendas').select('*').order('criado_em',{ascending:false}).limit(1000);
  if(error) throw error; sales=data||[];
- $('saleRows').innerHTML=sales.map(v=>{const lucro=Number(v.valor_total||0)-Number(v.custo_total||0);const vd=v.data_venda||String(v.criado_em||'').slice(0,10);const rn=`CDC-${String(vd).slice(0,4)}-${String(v.id).padStart(6,'0')}`;return `<tr><td><b>${rn}</b></td><td>${safe(vd)}</td><td>${safe(v.cliente||'-')}</td><td>${safe(v.cpf||'-')}</td><td>${safe(v.cidade||'-')}/${safe(v.estado||'-')}</td><td>${safe(v.telefone||'-')}</td><td>${safe(v.produto_nome||'-')}</td><td>${safe(v.armazenamento||'-')} / ${safe(v.ram||'-')}</td><td>${safe(v.imei||'-')}</td><td>${money(v.valor_total)}</td><td>${safe(v.garantia||'-')}</td><td>${money(lucro)}</td><td><button class="primary" onclick="gerarRecibo(${v.id})">📄 PDF</button></td></tr>`}).join('');
+ $('saleRows').innerHTML=sales.map(v=>{const lucro=Number(v.valor_total||0)-Number(v.custo_total||0);const vd=v.data_venda||String(v.criado_em||'').slice(0,10);const rn=`CDC-${String(vd).slice(0,4)}-${String(v.id).padStart(6,'0')}`;return `<tr><td><b>${rn}</b></td><td>${safe(vd)}</td><td>${safe(v.cliente||'-')}</td><td>${safe(v.cpf||'-')}</td><td>${safe(v.cidade||'-')}/${safe(v.estado||'-')}</td><td>${safe(v.telefone||'-')}</td><td>${safe(v.produto_nome||'-')}</td><td>${safe(v.cor||'-')}</td><td>${safe(v.armazenamento||'-')} / ${safe(v.ram||'-')}</td><td>${safe(v.imei||'-')}</td><td>${money(v.valor_total)}</td><td>${safe(v.garantia||'-')}</td><td>${money(lucro)}</td><td><button class="primary" onclick="gerarRecibo(${v.id})">📄 PDF</button></td></tr>`}).join('');
 }
 function renderDashboard(){
  const stock=devices.filter(x=>x.status==='EM ESTOQUE');$('kStock').textContent=stock.length;$('kCapital').textContent=money(stock.reduce((a,x)=>a+Number(x.valor_compra||0),0));
@@ -151,6 +152,10 @@ function renderDashboard(){
 $('supplierForm').onsubmit=async e=>{e.preventDefault();$('fMsg').textContent='Salvando...';const {error}=await sb.from('fornecedores').insert({nome:$('fNome').value.trim(),telefone:$('fTel').value.trim()||null,cidade:$('fCidade').value.trim()||null,observacao:$('fObs').value.trim()||null});if(error){$('fMsg').textContent='❌ '+error.message;return}e.target.reset();$('fMsg').innerHTML='<span class="ok">✅ Fornecedor cadastrado.</span>';await loadSuppliers();}
 window.toggleSupplier=async(id,value)=>{await sb.from('fornecedores').update({ativo:value}).eq('id',id);await loadSuppliers();}
 
+$('dImei').oninput=()=>{
+ $('dImei').value=$('dImei').value.replace(/\D/g,'').slice(0,15);
+};
+
 $('dProduto').onchange=()=>{
  const p=products.find(x=>x.id===Number($('dProduto').value));
  if(!p)return;
@@ -159,18 +164,25 @@ $('dProduto').onchange=()=>{
  $('dRam').value=p.ram||'';
 };
 
-$('deviceForm').onsubmit=async e=>{e.preventDefault();$('dMsg').textContent='Salvando...';const payload={data_compra:$('dData').value,fornecedor_id:Number($('dFornecedor').value),produto_id:Number($('dProduto').value),valor_compra:Number($('dCusto').value),imei:$('dImei').value.trim(),modelo:$('dModelo').value.trim(),armazenamento:$('dArm').value.trim(),ram:$('dRam').value.trim(),status:$('dStatus').value,observacao:$('dObs').value.trim()||null,atualizado_em:new Date().toISOString()};const {error}=await sb.from('aparelhos').insert(payload);if(error){$('dMsg').textContent=error.code==='23505'?'❌ Este IMEI já está cadastrado.':'❌ '+error.message;return}e.target.reset();$('dData').value=today();$('dMsg').innerHTML='<span class="ok">✅ Aparelho cadastrado no estoque.</span>';await refreshAll();}
+$('deviceForm').onsubmit=async e=>{e.preventDefault();
+ const imei=$('dImei').value.trim();
+ if(!/^\d{15}$/.test(imei)){
+   $('dMsg').innerHTML='<span class="bad">❌ O IMEI deve possuir exatamente 15 dígitos.</span>';
+   $('dImei').focus();
+   return;
+ }
+ $('dMsg').textContent='Salvando...';const payload={data_compra:$('dData').value,fornecedor_id:Number($('dFornecedor').value),produto_id:$('dProduto').value ? Number($('dProduto').value) : null,valor_compra:Number($('dCusto').value),imei:imei,modelo:$('dModelo').value.trim(),armazenamento:$('dArm').value.trim(),ram:$('dRam').value.trim(),cor:$('dCor').value.trim(),status:$('dStatus').value,observacao:$('dObs').value.trim()||null,atualizado_em:new Date().toISOString()};const {error}=await sb.from('aparelhos').insert(payload);if(error){$('dMsg').textContent=error.code==='23505'?'❌ Este IMEI já está cadastrado.':'❌ '+error.message;return}e.target.reset();$('dData').value=today();$('dMsg').innerHTML='<span class="ok">✅ Aparelho cadastrado no estoque.</span>';await refreshAll();}
 
 function updateSaleInfo(){
  const d=devices.find(x=>x.id===Number($('vDevice').value));if(!d){$('deviceInfo').innerHTML='Selecione um aparelho para visualizar os dados.';$('vLucro').value='';return}
  const valor=Number($('vValor').value||0),lucro=valor-Number(d.valor_compra||0);$('vLucro').value=money(lucro);
- $('deviceInfo').innerHTML=`<b>${safe(d.modelo)}</b> • ${safe(d.armazenamento)} • ${safe(d.ram)} RAM<br>IMEI: <b>${safe(d.imei)}</b><br>Custo: ${money(d.valor_compra)} • Lucro estimado: <b>${money(lucro)}</b>`;
+ $('deviceInfo').innerHTML=`<b>${safe(d.modelo)}</b> • ${safe(d.armazenamento)} • ${safe(d.ram)} RAM • Cor: <b>${safe(d.cor||'-')}</b><br>IMEI: <b>${safe(d.imei)}</b><br>Custo: ${money(d.valor_compra)} • Lucro estimado: <b>${money(lucro)}</b>`;
 }
 $('vDevice').onchange=updateSaleInfo;$('vValor').oninput=updateSaleInfo;$('vPagamento').onchange=()=>{$('vParcelas').disabled=$('vPagamento').value!=='CRÉDITO';if($('vParcelas').disabled)$('vParcelas').value='1'};
 
 $('saleForm').onsubmit=async e=>{e.preventDefault();const d=devices.find(x=>x.id===Number($('vDevice').value));if(!d)return; if(d.status!=='EM ESTOQUE'){$('vMsg').textContent='❌ Este aparelho não está disponível.';return}
  const valor=Number($('vValor').value),custo=Number(d.valor_compra||0);$('vMsg').textContent='Registrando venda...';
- const sale={aparelho_id:d.id,produto_nome:d.modelo,imei:d.imei,armazenamento:d.armazenamento,ram:d.ram,quantidade:1,preco_unitario:valor,valor_total:valor,custo_unitario:custo,custo_total:custo,forma_pagamento:$('vPagamento').value,parcelas:$('vPagamento').value==='CRÉDITO'?Number($('vParcelas').value):1,cliente:$('vCliente').value.trim(),cpf:$('vCpf').value.trim()||null,cidade:$('vCidade').value.trim(),estado:$('vEstado').value,telefone:$('vTelefone').value.trim(),garantia:$('vGarantia').value,data_venda:$('vData').value};
+ const sale={aparelho_id:d.id,produto_nome:d.modelo,imei:d.imei,armazenamento:d.armazenamento,ram:d.ram,cor:d.cor||null,quantidade:1,preco_unitario:valor,valor_total:valor,custo_unitario:custo,custo_total:custo,forma_pagamento:$('vPagamento').value,parcelas:$('vPagamento').value==='CRÉDITO'?Number($('vParcelas').value):1,cliente:$('vCliente').value.trim(),cpf:$('vCpf').value.trim()||null,cidade:$('vCidade').value.trim(),estado:$('vEstado').value,telefone:$('vTelefone').value.trim(),garantia:$('vGarantia').value,data_venda:$('vData').value};
  const upd=await sb.from('aparelhos').update({status:'VENDIDO',atualizado_em:new Date().toISOString()}).eq('id',d.id).eq('status','EM ESTOQUE').select('id');
  if(upd.error||!upd.data?.length){$('vMsg').textContent='❌ O aparelho não está mais disponível.';return}
  const ins=await sb.from('vendas').insert(sale);
@@ -225,6 +237,7 @@ window.gerarRecibo = async function(id){
  line('Cidade/Estado:',`${v.cidade||'-'} / ${v.estado||'-'}`);
  y+=2; doc.line(left,y-4,right,y-4);
  line('Modelo:',v.produto_nome);
+  line('Cor:',v.cor||'-');
  line('Armazenamento:',v.armazenamento||'-');
  line('Memória RAM:',v.ram||'-');
  line('IMEI:',v.imei||'-');
